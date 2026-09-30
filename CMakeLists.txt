@@ -30,11 +30,15 @@ if (SDL_VENDORED)
     set(SDL_TRAY OFF)
     set(SDL_NOTIFICATION OFF)
 
-    add_subdirectory(SDL)
+    add_subdirectory(SDL EXCLUDE_FROM_ALL)
 else()
     # Otherwise...
 
     find_package(SDL3)
+    if (NOT SDL3_FOUND)
+        # TODO: Handle packaged SDL3 not found case.
+        message(FATAL_ERROR "Package SDL3 is not found... (Insert more message)")
+    endif()
 endif()
 
 
@@ -42,6 +46,8 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
+
+include(CheckIncludeFile)
 include(werror)
 
 target_include_directories(piengine_headers INTERFACE "${CMAKE_SOURCE_DIR}/include/")

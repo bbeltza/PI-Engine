@@ -34,7 +34,7 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         &_PI_INIT_RENDER
     };
 
-    #define SYSTEM_COUNT SDL_arraysize(systems)
+    #define SYSTEM_COUNT PI_ARRAYSIZE(systems)
     size_t system_sizes[SYSTEM_COUNT] = { 0 };
     for (size_t i = 0; i < SYSTEM_COUNT; i++) {
         const PI_INIT_SYSTEM* s = systems[i];
@@ -44,10 +44,10 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
             return -1;
         }
 
-        SDL_assert(system_sizes[i] != 0);
+        PI_ASSERT(system_sizes[i] != 0);
     }
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
         return -1;
     }
 
@@ -61,7 +61,7 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
 
 // Initializing PI_ENGINEDATA
     PI_ENGINEDATA* engine = calloc(1, engine_size + gamesize);
-    SDL_assert(engine != NULL);
+    PI_ASSERT(engine != NULL);
 
     engine->running = true;
     engine->callbacks = *appinfo->callbacks;
@@ -70,12 +70,16 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         goto QUIT_FAIL;
     }
 
+    char* last_system = (char*)(engine) + sizeof(PI_ENGINEDATA);
     for (size_t i = 0; i < SYSTEM_COUNT; i++) {
-        void* hsystem = (char*)(engine) + system_sizes[i];
-        systems[i]->start(engine, hsystem);
-        // TODO: Handle failure
+        if (!systems[i]->start((void*)last_system, engine)) {
+            // TODO: Handle failure better
+            printf("SYSTEM INITIALIZATION (at index: %zu) FAILED...\n", i);
+            goto QUIT_FAIL;
+        }
 
-        engine->subsystems.data[i] = hsystem;
+        engine->subsystems.data[i] = (void*)last_system;
+        last_system += system_sizes[i];
     }
 
     PI_HGAME hgame = (PI_HGAME)((char*)(engine) + engine_size);
@@ -104,9 +108,23 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         if (!engine->callbacks.apprender(hgame)) {
             continue;
         }
+
+        for (size_t i = 0; i < SYSTEM_COUNT; i++) {
+            void* hsystem = engine->subsystems.data[i];
+            systems[i]->update(hsystem);
+        }
     }
 
-    SDL_DestroyWindow(engine->sdlwnd);
+    /* Cleanup all systems */
+        engine->callbacks.appclose(hgame);
+        
+        for (size_t i = 0; i < SYSTEM_COUNT; i++) {
+            void* hsystem = engine->subsystems.data[i];
+            systems[i]->close(hsystem);
+        }
+    /**/
+
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
     SDL_Quit();
     free(engine);
     return 0;

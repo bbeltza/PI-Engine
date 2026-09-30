@@ -4,12 +4,12 @@ class BACKEND_FAILURE {};
 
 PI_BACKEND_RENDER _PI_BACKEND_RENDER_D3D10 = {
     "Direct3D 10",
-    sizeof(pi_D3D10Backend),
-    [](PI_HRENDERBACKEND hbackend, const PI_BACKEND_RENDER_DESC* pdesc, PI_BACKEND_RENDER_CALLBACKS* pcallbacks) -> bool {
+    pi_D3D10Backend::s_calcsize,
+    [](PI_HRENDERBACKEND hbackend, const PI_BACKEND_RENDER_DESC* pdesc, PI_BACKEND_RENDER_INFO* pinfo) -> bool {
         try {
-            new (hbackend) pi_D3D10Backend{ *pdesc, pcallbacks };
+            new (hbackend) pi_D3D10Backend{ *pdesc, pinfo };
         }
-        catch (BACKEND_FAILURE& e) {
+        catch (BACKEND_FAILURE&) {
             return false;
         }
 
@@ -17,16 +17,70 @@ PI_BACKEND_RENDER _PI_BACKEND_RENDER_D3D10 = {
     }
 };
 
-pi_D3D10Backend::pi_D3D10Backend(const PI_BACKEND_RENDER_DESC& desc, PI_BACKEND_RENDER_CALLBACKS* pcallbacks):
-    m_dxdevice( NULL ),
-    m_dxswapchain( NULL )
+pi_D3D10Backend::pi_D3D10Backend(const PI_BACKEND_RENDER_DESC& desc, PI_BACKEND_RENDER_INFO* pinfo)
 {
     if (!initialize(desc)) {
         throw BACKEND_FAILURE{};
     }
 
+    auto pcallbacks = &pinfo->callbacks;
+    
     //#define STORE_CALLBACK(n) pcallbacks->pfn_##n = _s_##n
     pcallbacks->pfn_close = [](PI_HRENDERBACKEND hbackend) noexcept -> void {
         hbackend->~PI_RENDERBACKEND();
     };
+
+    pcallbacks->pfn_configure = [](PI_HRENDERBACKEND hbackend, const PI_RENDER_CONFIGURE* info) noexcept -> bool {
+        hbackend->configure(info);
+        return true;
+    };
+
+    pcallbacks->pfn_create_scene = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene) noexcept -> bool {
+        return hbackend->create_scene(hscene);
+    };
+    pcallbacks->pfn_destroy_scene = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene) noexcept -> void {
+        hbackend->destroy_scene(hscene);
+    };
+
+    pcallbacks->pfn_create_mesh = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_MESH hmesh, const PI_VERTEX* vertices, unsigned num_vertices, const void* indices, unsigned num_indices, PI_INDEX index_type) noexcept -> bool {
+        return hbackend->create_mesh(hmesh, vertices, num_vertices, indices, num_indices, index_type);
+    };
+    pcallbacks->pfn_destroy_mesh = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_MESH hmesh) noexcept -> void {
+        hbackend->destroy_mesh(hmesh);
+    };
+
+    pcallbacks->pfn_create_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer) noexcept -> bool {
+        return hbackend->create_instbuffer(hinstbuffer);
+    };
+    pcallbacks->pfn_destroy_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer) noexcept -> void {
+        hbackend->destroy_instbuffer(hinstbuffer);
+    };
+
+    pcallbacks->pfn_alloc_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned size, const PI_INSTANCE initial_data[]) noexcept -> bool {
+        return hbackend->alloc_instbuffer(hinstbuffer, size, initial_data);        
+    };
+    pcallbacks->pfn_update_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]) noexcept -> bool {
+        return hbackend->update_instbuffer(hinstbuffer, pos, size, data);        
+    };
+
+    pcallbacks->pfn_update_scene_vp = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const float vpmatrix[16]) noexcept -> void {
+        hbackend->update_scene_vp(hscene, vpmatrix);
+    };
+    pcallbacks->pfn_begin_scene = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const float clear_rgba[4]) noexcept -> void {
+        hbackend->begin_scene(hscene, clear_rgba);
+    };
+    pcallbacks->pfn_end_scene = [](PI_HRENDERBACKEND hbackend) noexcept -> void {
+        hbackend->end_scene();
+    };
+
+    pcallbacks->pfn_submit_mesh = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned instance_count) noexcept -> void {
+        hbackend->submit_mesh(hmesh, hinstbuffer, instance_count);
+    };
+
+    ASSERT_BACKEND_CALLBACKS(pinfo->callbacks);
+    DEFINE_BACKEND_STRUCTURES(pinfo->structures);
+}
+
+pi_D3D10Backend::~pi_D3D10Backend() noexcept {
+    release_objects();
 }

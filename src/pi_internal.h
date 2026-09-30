@@ -28,10 +28,13 @@ typedef struct PI_ENGINEDATA {
 typedef bool (*PI_PFN_OPEN_SYSTEM)(size_t* allocsize);
 typedef bool (*PI_PFN_START_SYSTEM)(void* hsystem, PI_ENGINEDATA* hengine);
 typedef void (*PI_PFN_CLOSE_SYSTEM)(void* hsystem);
+typedef void (*PI_PFN_UPDATE_SYSTEM)(void* hsystem);
 typedef struct PI_INIT_SYSTEM {
     PI_PFN_OPEN_SYSTEM open;
     PI_PFN_START_SYSTEM start;
     PI_PFN_CLOSE_SYSTEM close;
+
+    PI_PFN_UPDATE_SYSTEM update;
 } PI_INIT_SYSTEM;
 
 PI_EXTERN_C const PI_INIT_SYSTEM _PI_INIT_RENDER;
