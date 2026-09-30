@@ -5,17 +5,9 @@
 
 #ifdef PI_CPP
     #define PI_INIT_STRUCT(T) T
-    #define PI_ALIGN_AS(n) alignas(n)
     #define PI_ALIGN_STRUCT(n) typedef struct PI_ALIGN_AS(n)
 #else
     #define PI_INIT_STRUCT(T) (T)
-    #if _MSC_VER
-        #define PI_ALIGN_AS(n) __declspec(align(n))
-    #elif __GNUC__
-        #define PI_ALIGN_AS(n) __attribute__((aligned(n)))
-    #else
-        #define PI_ALIGN_AS(n)
-    #endif
     #define PI_ALIGN_STRUCT(n) PI_ALIGN_AS(n) typedef struct
 #endif
 
@@ -300,9 +292,11 @@ PI_INLINE_C PI_VECTOR4* _pi_mulv_4x4_sse(PI_VECTOR4* dst, const PI_VECTOR4* v, c
 
 PI_INLINE_C PI_VECTOR4 pi_mulv_4x4(const PI_VECTOR4* v, const PI_MATRIX_4X4* m) {
     return _pi_mulv_4x4_generic(v, m);
+    PI_VECTOR4 dst;
+    return *_pi_mulv_4x4_sse(&dst, v, m);
 }
 
-/**/
+/* High Level Matrix API */
 
 #include <math.h>
 
@@ -330,9 +324,38 @@ PI_INLINE_C PI_MATRIX_4X4 pi_matrix_perspective(float fov, float ratio, float zn
     };
 }
 
+    /* Rotations */
+
+PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_x(float rx, float ry, float rz)
+{
+    float sx = sinf(rx);
+    float cx = cosf(rx);
+
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, cx  , sx  , 0.0f,
+        0.0f, -sx , cx  , 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+}
+
+PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_y(float rx, float ry, float rz)
+{
+    float sy = sinf(ry);
+    float cy = cosf(ry);
+
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        cy  , 0.0f, -sy , 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        sy  , 0.0f, cy  , 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+}
+
+
+
 PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_xyz(float rx, float ry, float rz)
 {
-    // THIS IS UNFINISHED, ONLY ROTATES THE Y EULER AXIS FOR NOW
     float sy = sinf(ry);
     float cy = cosf(ry);
 
@@ -343,5 +366,24 @@ PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_xyz(float rx, float ry, float rz)
         0.0f, 0.0f, 0.0f, 1.0f
     };
 }
+
+/* Some helper definitions */
+
+#define PI_M_PI       3.14159265358979323846
+#define PI_M_PI1_180  0.01745329251994329500
+#define PI_M_SQRT2    1.41421356237309504880
+#define PI_M_SQRT1_2  1.41421356237309504880
+
+#define PI_DEG(n) ((n) * PI_M_PI1_180)
+#define PI_DEGF(n) ( (float)PI_DEG(n) )
+
+#ifdef PI_CPP
+
+constexpr long double operator ""_deg(long double n)  { return PI_DEG(n); }
+constexpr float       operator ""_degf(long double n) { return static_cast<float>(PI_DEG(n)); }
+constexpr long double operator ""_deg(unsigned long long n) { return PI_DEG(n); }
+constexpr float       operator ""_degf(unsigned long long n) { return static_cast<float>(PI_DEG(n)); }
+
+#endif
 
 #endif

@@ -23,7 +23,7 @@ macro(PI_BUILD_BACKEND name path)
 endmacro()
 
 BUILD_SYSTEM(render "render.cpp" "scene.cpp" "mesh.cpp" "instance.cpp" "update.cpp")
-BUILD_SYSTEM(main "main.c")
+BUILD_SYSTEM(main "main.c" "core.c")
 
 check_include_file("d3d10.h" HAVE_D3D10_H)
 

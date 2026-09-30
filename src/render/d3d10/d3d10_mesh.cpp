@@ -38,8 +38,8 @@ bool pi_D3D10Backend::create_mesh(PI_HRENDERBACKEND_MESH hmesh, const PI_VERTEX*
 
         staging_buffer = new BYTE[desc.ByteWidth];
         initial_data.pSysMem = staging_buffer;
-        std::memcpy(staging_buffer + 0, vertices, hmesh->index_offset);
-        std::memcpy(staging_buffer + hmesh->index_offset, indices, desc.ByteWidth - hmesh->index_offset);
+        memcpy(staging_buffer + 0, vertices, hmesh->index_offset);
+        memcpy(staging_buffer + hmesh->index_offset, indices, desc.ByteWidth - hmesh->index_offset);
     }
 
     COMCHECKCALL(m_dxdevice->CreateBuffer(&desc, &initial_data, &hmesh->dxbuffer));
@@ -82,6 +82,6 @@ void pi_D3D10Backend::submit_mesh(PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEN
         m_dxdevice->DrawIndexedInstanced(hmesh->vertex_count, instance_count, 0, 0, 0);
     }
     else {
-        m_dxdevice->DrawInstanced(hmesh->vertex_count, instance_count, 0, 0);
+        m_dxdevice->DrawInstanced(hmesh->vertex_count, instance_count, 0, 1);
     }
 }

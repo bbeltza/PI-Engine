@@ -44,7 +44,7 @@ void pi_D3D10Backend::update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const floa
         // When mapping in D3D10/11 is talked about you usually talk about MAP_WRITE_DISCARD or NO_OVERWRITE
     COMCHECKCALL(hscene->dxcbvbuffer->Map(D3D10_MAP_WRITE_NO_OVERWRITE, 0, reinterpret_cast<void**>(&psceneenv)));
     PI_ASSERT(SUCCEEDED(hr));
-        std::memcpy(psceneenv->vpmatrix, vpmatrix, sizeof(psceneenv->vpmatrix));
+        memcpy(psceneenv->vpmatrix, vpmatrix, sizeof(psceneenv->vpmatrix));
     hscene->dxcbvbuffer->Unmap();
 }
 

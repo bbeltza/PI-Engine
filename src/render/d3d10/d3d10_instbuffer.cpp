@@ -58,7 +58,7 @@ bool pi_D3D10Backend::update_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer
     if (FAILED(hr)) {
         return false;
     }
-        std::memcpy(pinstancedata + pos, data, size * sizeof(PI_INSTANCE));
+        memcpy(pinstancedata + pos, data, size * sizeof(PI_INSTANCE));
     hinstbuffer->dxstagingbuffer->Unmap();
 
     D3D10_BOX box{};

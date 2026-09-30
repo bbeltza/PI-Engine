@@ -34,10 +34,12 @@ PI_INSTANCE_IMPL::PI_INSTANCE_IMPL(PI_INSTBUFFER_IMPL* _instbuffer, const PI_INS
 
 PI_INSTANCE_IMPL::~PI_INSTANCE_IMPL() noexcept
 {
-    if (!instbuffer->instlist.empty()) {
-        for (auto it = instbuffer->instlist.begin(); it->index > index; ++it) {
-            it->index--;
+    for (auto& i : instbuffer->instlist) {
+        PI_ASSERT(&i == this || i.index != index);
+        if (i.index <= index) {
+            break;
         }
+        i.index--;
     }
     
     instbuffer->bufdata.erase(instbuffer->bufdata.cbegin() + index);
@@ -80,6 +82,11 @@ PI_INSTBUFFER_IMPL::PI_INSTBUFFER_IMPL(PI_SYSTEM_RENDER* _renderer) noexcept:
 PI_INSTBUFFER_IMPL::~PI_INSTBUFFER_IMPL() noexcept
 {
     if (renderer) {
+        instlist.clear();
         renderer->backend.callbacks.pfn_destroy_instbuffer(renderer->get_backend(), this->get_backend());
+    }
+    else {
+        PI_ASSERT(instlist.empty());
+        PI_ASSERT(bufdata.empty());
     }
 }

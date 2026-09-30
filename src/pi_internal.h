@@ -2,9 +2,19 @@
 #define PI_INTERNAL_H
 
 #include <piengine/pi_main.h>
+#include <piengine/pi_core.h>
 
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_events.h>
+
+/* Core engine implementation definitions */
+
+struct PI_WND_IMPL {
+    SDL_Window* sdlwnd;
+    // More stuff to come :eyes:
+};
+
+/* Internal engine definitions */
 
 typedef struct PI_SYSTEM_RENDER PI_SYSTEM_RENDER;
 typedef struct PI_SYSTEM_PHYSICS PI_SYSTEM_PHYSICS;
@@ -14,6 +24,9 @@ typedef struct PI_ENGINEDATA {
     PI_APPCALLBACKS callbacks;
 
     SDL_Window* sdlwnd;
+
+    Uint64 dt_value;
+    double dt_double;
 
     union {
         struct {

@@ -18,7 +18,7 @@ PI_DLL& pi_D3D10Backend::_s_get_dll() noexcept {
 }
 
 constexpr UINT DEVICE_FLAGS = D3D10_CREATE_DEVICE_SINGLETHREADED;
-constexpr UINT DEVICE_BACKBUFFERS = 1; // 1 for now should be fine right??
+constexpr UINT DEVICE_BACKBUFFERS = 2; // 1 for now should be fine right??
 constexpr DXGI_FORMAT DEVICE_FORMAT = DXGI_FORMAT_R10G10B10A2_UNORM;
 
 size_t pi_D3D10Backend::s_calcsize() noexcept
@@ -33,15 +33,16 @@ size_t pi_D3D10Backend::s_calcsize() noexcept
 
     HRESULT hr;
     ID3D10Device* dxdevice = NULL;
-    hr = _s_pD3D10CreateDevice(
+    COMCHECKCALL(_s_pD3D10CreateDevice(
             NULL,
             D3D10_DRIVER_TYPE_HARDWARE,
             NULL,
             DEVICE_FLAGS,
             D3D10_SDK_VERSION,
             &dxdevice
-        );
+        ));
     if (FAILED(hr)) {
+        system("pause");
         return 0;
     }
 
@@ -80,6 +81,7 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
             &m_dxdevice
         ));
 
+
     {
         IDXGIDevice* dxgidevice = NULL;
         IDXGIAdapter* dxgiadapter = NULL;
@@ -97,7 +99,7 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
         desc.BufferCount = DEVICE_BACKBUFFERS;
         desc.OutputWindow = hwnd;
         desc.Windowed = TRUE;
-        desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         desc.Flags = 0;
         COMCHECKCALL(dxgifactory->CreateSwapChain(m_dxdevice, &desc, &m_dxswapchain));
         PI_ASSERT(!FAILED(hr));
@@ -126,17 +128,18 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
     COMCHECKCALL(m_dxdevice->CreatePixelShader(ps_basic, sizeof(ps_basic), &m_dx_ps_basic));
 
     {
-        static const LPCSTR TRANSFORM = "TRANSFORM";
+        static const LPCSTR POSITION = "POSITION";
+        static const LPCSTR COLOR = "COLOR";
 
         D3D10_INPUT_ELEMENT_DESC inputs[] = {
-            D3D10_INPUT_ELEMENT_DESC{ "XYZ", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_VERTEX_DATA },
-            D3D10_INPUT_ELEMENT_DESC{ "RGB", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_VERTEX_DATA },
+            D3D10_INPUT_ELEMENT_DESC{ POSITION, 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_VERTEX_DATA },
+            D3D10_INPUT_ELEMENT_DESC{ COLOR, 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_VERTEX_DATA },
 
-            D3D10_INPUT_ELEMENT_DESC{ TRANSFORM, 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
-            D3D10_INPUT_ELEMENT_DESC{ TRANSFORM, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
-            D3D10_INPUT_ELEMENT_DESC{ TRANSFORM, 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
-            D3D10_INPUT_ELEMENT_DESC{ TRANSFORM, 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
-            D3D10_INPUT_ELEMENT_DESC{ "ALBEDO", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA }
+            D3D10_INPUT_ELEMENT_DESC{ POSITION, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
+            D3D10_INPUT_ELEMENT_DESC{ POSITION, 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
+            D3D10_INPUT_ELEMENT_DESC{ POSITION, 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
+            D3D10_INPUT_ELEMENT_DESC{ POSITION, 4, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA },
+            D3D10_INPUT_ELEMENT_DESC{COLOR, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA }
         };
 
         COMCHECKCALL(m_dxdevice->CreateInputLayout(inputs, PI_ARRAYSIZE(inputs), vs_basic, sizeof(vs_basic), &m_dxinputlayout));
@@ -146,6 +149,17 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
     m_dxdevice->PSSetShader(m_dx_ps_basic);
     m_dxdevice->IASetInputLayout(m_dxinputlayout);
     m_dxdevice->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    {
+        ID3D10RasterizerState* tmprasterizer = NULL;
+        D3D10_RASTERIZER_DESC desc{};
+        desc.CullMode = D3D10_CULL_NONE;
+        desc.DepthClipEnable = TRUE;
+        desc.FillMode = D3D10_FILL_SOLID;
+        //COMCHECKCALL(m_dxdevice->CreateRasterizerState(&desc, &tmprasterizer));
+        //m_dxdevice->RSSetState(tmprasterizer);
+        //COMRELEASE(tmprasterizer);
+    }
     return true;
 }
 
@@ -180,4 +194,6 @@ void pi_D3D10Backend::configure(const PI_RENDER_CONFIGURE* info) noexcept
     viewport.Height = info->h;
     viewport.MaxDepth = 1.0f;
     m_dxdevice->RSSetViewports(1, &viewport);
+
+    COMRELEASE(backbuffer);
 }
