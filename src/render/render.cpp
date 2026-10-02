@@ -1,4 +1,5 @@
 #include "render_internal.hpp"
+#include <piengine/pi_math.h>
 
 PI_EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_D3D10;
 
@@ -96,7 +97,7 @@ bool PI_SYSTEM_RENDER::_s_event_watch(void* userdata, SDL_Event* event) noexcept
 
     switch (event->type)
     {
-        case SDL_EVENT_WINDOW_RESIZED:
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
             if (!event->window.data1 || !event->window.data2) {
                 break;
             }
@@ -171,23 +172,19 @@ PI_EXTERN_C PI_HSCENE pi_get_current_scene(PI_HGAME hgame) {
 }
 
 PI_EXTERN_C bool pi_set_scene_clear_color(PI_HSCENE hscene, float r, float g, float b, float a) {
-    /* TODO: Add assertion??? I don't know just to check if `hscene` is non-NULL. I don't have any assert headers included right now aaaaaaahaaAAAHHH  */
+    PI_ASSERT(hscene != NULL);
 
-    hscene->clear_color[0] = r;
-    hscene->clear_color[1] = g;
-    hscene->clear_color[2] = b;
-    hscene->clear_color[3] = a;
-
+    hscene->clear_color = PI_VECTOR4{ r, g, b, a };
     return true;
 }
-PI_EXTERN_C bool pi_set_scene_projection(PI_HSCENE hscene, const float mproj[16]) {
+PI_EXTERN_C bool pi_set_scene_projection(PI_HSCENE hscene, const PI_MATRIX_4X4* mproj) {
     /* Meh just make a memcpy :D */
-    std::memcpy(hscene->projection, mproj, sizeof(hscene->projection));
+    hscene->projection = *mproj;
     hscene->dirty.viewproj = true; // Here we need to notify update state since the view/projection is to be updated inside a buffer (managed by the backend (D3D or GL....))
     return true;
 }
-PI_EXTERN_C bool pi_set_scene_view(PI_HSCENE hscene, const float mview[16]) {
-    std::memcpy(hscene->view, mview, sizeof(hscene->view));
+PI_EXTERN_C bool pi_set_scene_view(PI_HSCENE hscene, const PI_MATRIX_4X4* mview) {
+    hscene->view = *mview;
     hscene->dirty.viewproj = true;
     return true;
 }
@@ -204,14 +201,8 @@ PI_EXTERN_C PI_HINSTANCE pi_add_scene_mesh(PI_HSCENE hscene, PI_HMESH hmesh, con
     }
 
     static const PI_INSTANCE INSTANCE_DEFAULT = {
-        {
-            1.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 1.0f
-        },
-        
-        1.0f, 1.0f, 1.0f, 1.0f
+        pi_identity_4x4(),
+        { 1.0f, 1.0f, 1.0f, 1.0f }
     };
     if (!instance) {
         instance = &INSTANCE_DEFAULT;

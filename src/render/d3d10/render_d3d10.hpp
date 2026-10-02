@@ -45,6 +45,7 @@ typedef HRESULT (WINAPI* PFN_D3D10_CREATE_DEVICE)(
     );
 
 #define pi_D3D10Backend PI_RENDERBACKEND
+#define pi_D3D10WorldEnv PI_RENDERBACKEND_WORLDENV
 #define pi_D3D10Scene PI_RENDERBACKEND_SCENE
 #define pi_D3D10Mesh PI_RENDERBACKEND_MESH
 #define pi_D3D10InstBuffer PI_RENDERBACKEND_INSTBUFFER
@@ -61,6 +62,9 @@ private:
 
     void configure(const PI_RENDER_CONFIGURE* info) noexcept;
 
+    bool create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_WORLDENV_DESC* pdesc) noexcept;
+    void destroy_worldenv(PI_HRENDERBACKEND_WORLDENV hworldenv) noexcept;
+
     bool create_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept;
     void destroy_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept;
 
@@ -73,8 +77,8 @@ private:
     bool alloc_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned size, const PI_INSTANCE initial_data[]) noexcept;
     bool update_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]) noexcept;
 
-    void update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const float vpmatrix[16]) noexcept;
-    void begin_scene(PI_HRENDERBACKEND_SCENE hscene, const float clear_rgba[4]) noexcept;
+    void update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept;
+    void begin_scene(PI_HRENDERBACKEND_SCENE hscene, const PI_VECTOR4* clear_rgba) noexcept;
     void end_scene() noexcept;
 
     void submit_mesh(PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEND_INSTBUFFER, unsigned instance_count) noexcept;
@@ -88,14 +92,28 @@ private:
     ID3D10InputLayout* m_dxinputlayout = NULL;
 
     ID3D10RenderTargetView* m_dxrtv = NULL;
+
+    ID3D10Texture2D* m_dxdepthstencil = NULL;
+    ID3D10DepthStencilView* m_dxdsv = NULL;
+    pi_D3D10WorldEnv* m_testworldenv = NULL;
 private:
     PI_HRENDERBACKEND_SCENE m_lastscene = NULL;
+    PI_HRENDERBACKEND_WORLDENV m_lastworldenv = NULL;
     void bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept;
+    void bind_worldenv(PI_HRENDERBACKEND_WORLDENV) noexcept;
 public:
     static size_t s_calcsize() noexcept;
 private:
     static PI_DLL& _s_get_dll() noexcept;
     static PFN_D3D10_CREATE_DEVICE _s_pD3D10CreateDevice;
+};
+
+struct pi_D3D10WorldEnv
+{
+    ~pi_D3D10WorldEnv() noexcept;
+
+    ID3D10RasterizerState* dxrasterizer;
+    ID3D10DepthStencilState* dxdepthstencil;
 };
 
 struct pi_D3D10Scene

@@ -11,14 +11,12 @@ void PI_SYSTEM_RENDER::update(void) noexcept
     PI_HRENDERBACKEND_SCENE hcurrscn = m_currentscn->get_backend();
 
     if (m_currentscn->dirty.viewproj) {
-        auto vpmatrix = pi_mul_4x4(
-                PI_FPTOMATRIX_4X4(m_currentscn->view),
-                PI_FPTOMATRIX_4X4(m_currentscn->projection)
-            );
+        PI_MATRIX_4X4 vpmatrix;
+        pi_mul_4x4(&vpmatrix, &m_currentscn->projection, &m_currentscn->view);
         backend.callbacks.pfn_update_scene_vp(
                 hbackend,
                 hcurrscn,
-                PI_MFLOATP(vpmatrix)
+                &vpmatrix
             );
         m_currentscn->dirty.viewproj = false;
     }
@@ -57,7 +55,7 @@ void PI_SYSTEM_RENDER::update(void) noexcept
 
     }
 
-    backend.callbacks.pfn_begin_scene(hbackend, hcurrscn, m_currentscn->clear_color);
+    backend.callbacks.pfn_begin_scene(hbackend, hcurrscn, &m_currentscn->clear_color);
 
     for (auto it = m_currentscn->begin_instbufs(); it != m_currentscn->end_instbufs(); ++it)
     {

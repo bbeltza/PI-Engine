@@ -30,6 +30,7 @@ PI_PSINPUT VSmain(PI_VSINPUT input)
     PI_PSINPUT output;
     output.color = input.vcol * input.ialbedo;
     output.pos = mul(view_proj, vpos);
+
     //output.pos = float4(input.vpos, 1.0f);
     return output;
 }

@@ -33,7 +33,7 @@ void pi_D3D10Backend::destroy_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept {
 
 //
 
-void pi_D3D10Backend::update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const float vpmatrix[16]) noexcept
+void pi_D3D10Backend::update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept
 {
     HRESULT hr;
     PI_SCENEENV* psceneenv = NULL;
@@ -44,29 +44,28 @@ void pi_D3D10Backend::update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const floa
         // When mapping in D3D10/11 is talked about you usually talk about MAP_WRITE_DISCARD or NO_OVERWRITE
     COMCHECKCALL(hscene->dxcbvbuffer->Map(D3D10_MAP_WRITE_DISCARD, 0, reinterpret_cast<void**>(&psceneenv)));
     PI_ASSERT(SUCCEEDED(hr));
-        memcpy(psceneenv->vpmatrix, vpmatrix, sizeof(psceneenv->vpmatrix));
+        psceneenv->vpmatrix = *vpmatrix;
     hscene->dxcbvbuffer->Unmap();
 }
 
 void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
 {
-    if (hscene == m_lastscene) {
-        return;
+    if (hscene != m_lastscene) {
+        ID3D10Buffer* const buffers[] = {
+            hscene ? hscene->dxcbvbuffer : NULL
+        };
+        m_dxdevice->VSSetConstantBuffers(0, PI_ARRAYSIZE(buffers), buffers);
+        m_lastscene = hscene;
     }
-
-    ID3D10Buffer* const buffers[] = {
-        hscene ? hscene->dxcbvbuffer : NULL
-    };
-    m_dxdevice->VSSetConstantBuffers(0, PI_ARRAYSIZE(buffers), buffers);
-    m_lastscene = hscene;
 }
 
-void pi_D3D10Backend::begin_scene(PI_HRENDERBACKEND_SCENE hscene, const float clear_rgba[4]) noexcept
+void pi_D3D10Backend::begin_scene(PI_HRENDERBACKEND_SCENE hscene, const PI_VECTOR4* clear_rgba) noexcept
 {
     PI_ASSERT(m_dxrtv != NULL);
 
-    m_dxdevice->ClearRenderTargetView(m_dxrtv, clear_rgba);
-    m_dxdevice->OMSetRenderTargets(1, &m_dxrtv, NULL);
+    m_dxdevice->ClearRenderTargetView(m_dxrtv, clear_rgba->arr);
+    m_dxdevice->ClearDepthStencilView(m_dxdsv, D3D10_CLEAR_DEPTH, 1.0f, 0);
+    m_dxdevice->OMSetRenderTargets(1, &m_dxrtv, m_dxdsv);
     this->bind_scene(hscene);
 }
 

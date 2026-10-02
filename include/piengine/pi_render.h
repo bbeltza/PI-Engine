@@ -2,19 +2,21 @@
 #define PI_RENDER_H
 
 #include <piengine/pi_common.h>
+#include <piengine/pi_scalars.h>
 
+typedef struct PI_WORLDENV_IMPL *PI_HWORLDENV;
 typedef struct PI_SCENE_IMPL *PI_HSCENE;
 typedef struct PI_MESH_IMPL *PI_HMESH;
 typedef struct PI_INSTANCE_IMPL *PI_HINSTANCE;
 
 typedef struct PI_VERTEX {
-    float x, y, z;
-    float r, g, b;
+    PI_VECTOR3 pos;
+    PI_VECTOR3 col;
 } PI_VERTEX;
 
 typedef struct PI_INSTANCE {
-    float m[16];
-    float r, g, b, _a;
+    PI_MATRIX_4X4 transform;
+    PI_VECTOR4 col;
 } PI_INSTANCE;
 
 typedef enum PI_INDEX {
@@ -23,9 +25,64 @@ typedef enum PI_INDEX {
     PI_INDEX_U32 = 2
 } PI_INDEX;
 
+typedef enum PI_FILLMODE {
+    PI_FILL_SOLID = 0,
+    PI_FILL_WIREFRAME = 1
+} PI_FILLMODE;
+
+typedef enum PI_CULLFLAG {
+    PI_CULL_NONE = 0x00000000,
+    PI_CULL_FRONT = 0x00000001,
+    PI_CULL_BACK = 0x00000002,
+    
+    PI_CULL_FRONT_COUNTERCLOCKWISE = 0x10000000
+} PI_CULLFLAG;
+typedef uint32_t PI_CULLFLAGS;
+
+typedef enum PI_COMPARE_FUNC {
+    PI_COMPARE_NEVER = 0,
+    PI_COMPARE_LESS = 1,
+    PI_COMPARE_EQUAL = 2,
+    PI_COMPARE_LESS_EQUAL = 3,
+    PI_COMPARE_GREATER = 4,
+    PI_COMPARE_NOT_EQUAL = 5,
+    PI_COMPARE_GREATER_EQUAL = 6,
+    PI_COMPARE_ALWAYS = 7
+} PI_COMPARE_FUNC;
+
+typedef enum PI_WORLDEFFECT {
+    PI_WORLDEFFECT_NONE = 0x00000000,
+    PI_WORLDEFFECT_LIGHTS_DIRECTIONAL = 0x00000001, /* Enable directional lighting (It also implies ambient lighting) */
+    PI_WORLDEFFECT_LIGHTS_POINT = 0x00000002,       /* Allow for point lights to be added */
+    PI_WORLDEFFECT_LIGHTS_SPECULAR = 0x00000004,    /* Enable specular lighting */
+} PI_WORLDENV_EFFECT;
+typedef uint32_t PI_WORLDENV_EFFECTS;
+
+typedef struct PI_WORLDENV_DESC {
+    PI_WORLDENV_EFFECTS effects;
+    struct PI_WORLDENV_RASTERIZER {
+        PI_FILLMODE fillmode;
+        PI_CULLFLAGS cullflags;
+    } rasterizer;
+    struct PI_WORLDENV_DEPTH {
+        bool writeenable;
+        PI_COMPARE_FUNC depthcompare;
+    } depth;
+    struct PI_WORLDENV_STENCIL {
+        uint32_t _unused;
+    } _reserved1;
+    struct PI_WORLDENV_MSAA {
+        uint8_t samples;
+        bool    best_quality;
+    } multisample;
+} PI_WORLDENV_DESC;
+
 PI_EXTERN_C PI_HMESH pi_create_mesh_indexed(PI_HGAME hgame, int num_vertices, const PI_VERTEX vertices[], int num_indices, const void* indices, PI_INDEX index_type);
 PI_EXTERN_C PI_HMESH pi_create_mesh(PI_HGAME hgame, int num_vertices, const PI_VERTEX vertices[]);
 PI_EXTERN_C void pi_destroy_mesh(PI_HMESH hmesh);
+
+PI_EXTERN_C PI_HWORLDENV pi_create_worldenvironment(PI_HGAME hgame, const PI_WORLDENV_DESC* pdesc);
+PI_EXTERN_C void pi_destroy_worldenironment(PI_HWORLDENV hworldenv);
 
 PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame, bool set_current);
 PI_EXTERN_C void pi_release_scene(PI_HSCENE hscene);
@@ -34,8 +91,8 @@ PI_EXTERN_C PI_HSCENE pi_set_current_scene(PI_HGAME hgame, PI_HSCENE hscene);
 PI_EXTERN_C PI_HSCENE pi_get_current_scene(PI_HGAME hgame);
 
 PI_EXTERN_C bool pi_set_scene_clear_color(PI_HSCENE hscene, float r, float g, float b, float a);
-PI_EXTERN_C bool pi_set_scene_projection(PI_HSCENE hscene, const float mproj[16]);
-PI_EXTERN_C bool pi_set_scene_view(PI_HSCENE hscene, const float mview[16]);
+PI_EXTERN_C bool pi_set_scene_projection(PI_HSCENE hscene, const PI_MATRIX_4X4* mproj);
+PI_EXTERN_C bool pi_set_scene_view(PI_HSCENE hscene, const PI_MATRIX_4X4* mview);
 
 PI_EXTERN_C PI_HINSTANCE pi_add_scene_mesh(PI_HSCENE hscene, PI_HMESH hmesh, const PI_INSTANCE* instance);
 PI_EXTERN_C void pi_remove_scene_mesh(PI_HINSTANCE hmeshinst);
@@ -54,6 +111,7 @@ typedef struct PI_RENDER_CONFIGURE {
 } PI_RENDER_CONFIGURE;
 
 typedef struct PI_RENDERBACKEND *PI_HRENDERBACKEND;
+typedef struct PI_RENDERBACKEND_WORLDENV *PI_HRENDERBACKEND_WORLDENV;
 typedef struct PI_RENDERBACKEND_SCENE *PI_HRENDERBACKEND_SCENE;
 typedef struct PI_RENDERBACKEND_MESH *PI_HRENDERBACKEND_MESH;
 typedef struct PI_RENDERBACKEND_INSTBUFFER *PI_HRENDERBACKEND_INSTBUFFER;
@@ -74,8 +132,8 @@ typedef void (*PI_PFN_BACKEND_RENDER_DESTROY_INSTBUFFER)(PI_HRENDERBACKEND hback
 typedef bool (*PI_PFN_BACKEND_RENDER_ALLOC_INSTBUFFER)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned size, const PI_INSTANCE initial_data[]);
 typedef bool (*PI_PFN_BACKEND_RENDER_UPDATE_INSTBUFFER)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]);
 
-typedef void (*PI_PFN_BACKEND_RENDER_UPDATE_SCENE_VP)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const float vpmatrix[16]);
-typedef void (*PI_PFN_BACKEND_RENDER_BEGIN_SCENE)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const float clear_rgba[4]);
+typedef void (*PI_PFN_BACKEND_RENDER_UPDATE_SCENE_VP)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix);
+typedef void (*PI_PFN_BACKEND_RENDER_BEGIN_SCENE)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_VECTOR4* clear_rgba);
 typedef void (*PI_PFN_BACKEND_RENDER_END_SCENE)(PI_HRENDERBACKEND hbackend);
 
 typedef void (*PI_PFN_BACKEND_RENDER_SUBMIT_MESH)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned instance_count);
@@ -119,7 +177,7 @@ typedef struct PI_BACKEND_RENDER_STRUCTURES {
 } PI_BACKEND_RENDER_STRUCTURES;
 
 // Helpers to automatically fill in the backend object size structure using the defined types
-#define DEFINE_BACKEND_STRUCTURE(structures, n) (structures).n##_size = sizeof(PI_RENDERBACKEND_##n)
+#define DEFINE_BACKEND_STRUCTURE(structures, n) (structures).n##_size = sizeof(struct PI_RENDERBACKEND_##n)
 #define DEFINE_BACKEND_STRUCTURES(structures) \
             DEFINE_BACKEND_STRUCTURE(structures, SCENE); \
             DEFINE_BACKEND_STRUCTURE(structures, MESH);  \
@@ -149,7 +207,7 @@ typedef struct PI_BACKEND_RENDER {
 
 /* Structure data for the uniform scene buffer for backends to use */
 typedef struct PI_SCENEENV {
-    float vpmatrix[4 * 4];
+    PI_MATRIX_4X4 vpmatrix;
 } PI_SCENEENV;
 
 #endif

@@ -18,7 +18,7 @@ PI_DLL& pi_D3D10Backend::_s_get_dll() noexcept {
 }
 
 constexpr UINT DEVICE_FLAGS = D3D10_CREATE_DEVICE_SINGLETHREADED;
-constexpr UINT DEVICE_BACKBUFFERS = 2; // 1 for now should be fine right??
+constexpr UINT DEVICE_BACKBUFFERS = 1; // 1 for now should be fine right??
 constexpr DXGI_FORMAT DEVICE_FORMAT = DXGI_FORMAT_R10G10B10A2_UNORM;
 
 size_t pi_D3D10Backend::s_calcsize() noexcept
@@ -99,7 +99,7 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
         desc.BufferCount = DEVICE_BACKBUFFERS;
         desc.OutputWindow = hwnd;
         desc.Windowed = TRUE;
-        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+        desc.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
         desc.Flags = 0;
         COMCHECKCALL(dxgifactory->CreateSwapChain(m_dxdevice, &desc, &m_dxswapchain));
         PI_ASSERT(!FAILED(hr));
@@ -150,11 +150,24 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
     m_dxdevice->IASetInputLayout(m_dxinputlayout);
     m_dxdevice->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+    m_testworldenv = new pi_D3D10WorldEnv;
+    PI_WORLDENV_DESC wedesc{};
+    wedesc.rasterizer.cullflags = PI_CULL_NONE;
+    wedesc.rasterizer.fillmode = PI_FILL_SOLID;
+    wedesc.depth.depthcompare = PI_COMPARE_LESS;
+    wedesc.depth.writeenable = true;
+    wedesc.multisample.samples = 1;
+
+    assert(create_worldenvironment(m_testworldenv, &wedesc));
+    bind_worldenv(m_testworldenv);
+
     return true;
 }
 
 void pi_D3D10Backend::release_objects() noexcept
 {
+    destroy_worldenv(m_testworldenv);
+
     COMRELEASESAFE(m_dxrtv);
     COMRELEASE(m_dxinputlayout);
     COMRELEASE(m_dx_ps_basic);
@@ -168,8 +181,26 @@ void pi_D3D10Backend::configure(const PI_RENDER_CONFIGURE* info) noexcept
     HRESULT hr;
     COMRELEASESAFE(m_dxrtv);
 
+    COMRELEASESAFE(m_dxdsv);
+    COMRELEASESAFE(m_dxdepthstencil);
+
     COMCHECKCALL(m_dxswapchain->ResizeBuffers(DEVICE_BACKBUFFERS, info->w, info->h, DXGI_FORMAT_UNKNOWN, 0));
     PI_ASSERT(!FAILED(hr));
+
+    {
+        D3D10_TEXTURE2D_DESC dsdesc = {};
+        dsdesc.Width = info->w;
+        dsdesc.Height = info->h;
+        dsdesc.MipLevels = 1;
+        dsdesc.ArraySize = 1;
+        dsdesc.Format = DXGI_FORMAT_D32_FLOAT;
+        dsdesc.SampleDesc = { 1, 0 };
+        dsdesc.Usage = D3D10_USAGE_DEFAULT;
+        dsdesc.BindFlags = D3D10_BIND_DEPTH_STENCIL;
+
+        COMCHECKCALL(m_dxdevice->CreateTexture2D(&dsdesc, NULL, &m_dxdepthstencil));
+        PI_ASSERT(!FAILED(hr));
+    }
 
     ID3D10Resource* backbuffer = NULL;
     COMCHECKCALL(m_dxswapchain->GetBuffer(0, IID_PPV_ARGS(&backbuffer)));
@@ -178,6 +209,8 @@ void pi_D3D10Backend::configure(const PI_RENDER_CONFIGURE* info) noexcept
     rtvdesc.ViewDimension = D3D10_RTV_DIMENSION_TEXTURE2D;
     rtvdesc.Format = DEVICE_FORMAT;
     COMCHECKCALL(m_dxdevice->CreateRenderTargetView(backbuffer, &rtvdesc, &m_dxrtv));
+
+    COMCHECKCALL(m_dxdevice->CreateDepthStencilView(m_dxdepthstencil, NULL, &m_dxdsv));
 
     D3D10_VIEWPORT viewport{};
     viewport.Width = info->w;

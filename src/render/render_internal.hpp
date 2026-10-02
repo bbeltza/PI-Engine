@@ -102,9 +102,9 @@ struct PI_SCENE_IMPL
     PI_SYSTEM_RENDER* renderer;
 
     // Default values for those in the constructor's definition
-    float clear_color[4];
-    float projection[16];
-    float view[16];
+    PI_MATRIX_4X4 projection;
+    PI_MATRIX_4X4 view;
+    PI_VECTOR4 clear_color;
 
     struct {
         bool viewproj : 1;

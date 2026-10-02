@@ -63,10 +63,10 @@ pi_D3D10Backend::pi_D3D10Backend(const PI_BACKEND_RENDER_DESC& desc, PI_BACKEND_
         return hbackend->update_instbuffer(hinstbuffer, pos, size, data);        
     };
 
-    pcallbacks->pfn_update_scene_vp = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const float vpmatrix[16]) noexcept -> void {
+    pcallbacks->pfn_update_scene_vp = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept -> void {
         hbackend->update_scene_vp(hscene, vpmatrix);
     };
-    pcallbacks->pfn_begin_scene = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const float clear_rgba[4]) noexcept -> void {
+    pcallbacks->pfn_begin_scene = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_VECTOR4* clear_rgba) noexcept -> void {
         hbackend->begin_scene(hscene, clear_rgba);
     };
     pcallbacks->pfn_end_scene = [](PI_HRENDERBACKEND hbackend) noexcept -> void {
