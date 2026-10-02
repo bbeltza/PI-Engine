@@ -63,7 +63,7 @@ private:
     void configure(const PI_RENDER_CONFIGURE* info) noexcept;
 
     bool create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_WORLDENV_DESC* pdesc) noexcept;
-    void destroy_worldenv(PI_HRENDERBACKEND_WORLDENV hworldenv) noexcept;
+    void destroy_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworldenv) noexcept;
 
     bool create_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept;
     void destroy_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept;
@@ -78,7 +78,7 @@ private:
     bool update_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]) noexcept;
 
     void update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept;
-    void begin_scene(PI_HRENDERBACKEND_SCENE hscene, const PI_VECTOR4* clear_rgba) noexcept;
+    void begin_scene(PI_HRENDERBACKEND_SCENE hscene, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_VECTOR4* clear_rgba) noexcept;
     void end_scene() noexcept;
 
     void submit_mesh(PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEND_INSTBUFFER, unsigned instance_count) noexcept;
@@ -95,7 +95,6 @@ private:
 
     ID3D10Texture2D* m_dxdepthstencil = NULL;
     ID3D10DepthStencilView* m_dxdsv = NULL;
-    pi_D3D10WorldEnv* m_testworldenv = NULL;
 private:
     PI_HRENDERBACKEND_SCENE m_lastscene = NULL;
     PI_HRENDERBACKEND_WORLDENV m_lastworldenv = NULL;

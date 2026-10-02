@@ -436,59 +436,78 @@ PI_INLINE_C PI_MATRIX_4X4 pi_matrix_perspective(float fov, float ratio, float zn
 
     /* Rotations */
 
-PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_x(float rx)
+PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate_x(PI_MATRIX_4X4* dst, float rx)
 {
     float sx = sinf(rx);
     float cx = cosf(rx);
 
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, cx  , sx  , 0.0f,
         0.0f, -sx , cx  , 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
     };
+    return dst;
 }
 
-PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_y(float ry)
+PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate_y(PI_MATRIX_4X4* dst, float ry)
 {
     float sy = sinf(ry);
     float cy = cosf(ry);
 
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
         cy  , 0.0f, -sy , 0.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
         sy  , 0.0f, cy  , 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
     };
+    return dst;
 }
 
-PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_z(float rz)
+PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate_z(PI_MATRIX_4X4* dst, float rz)
 {
-    float sz = sinf(rz);
+    float sz = -sinf(rz); // Clockwise rotation instead of standard counter-clockwise rotation. Usually would work better for computer graphics rotations, but might change it.
     float cz = cosf(rz);
 
-    /* Rotation is clockwise!!! ("non-standard") */
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
-        cz  , -sz , 0.0f, 0.0f,
-        sz  , cz  , 0.0f, 0.0f,
+    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
+        cz  , sz , 0.0f, 0.0f,
+        -sz , cz  , 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
     };
+    return dst;
 }
 
 
-PI_INLINE_C PI_MATRIX_4X4 pi_matrix_rotate_xyz(float rx, float ry, float rz)
+    /* Rotation with normalized `n_axis`, DON'T use it unless you're sure that n_axis is normalized. Otherwise, use `pi_matrix_rotate4` */
+PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate4n(PI_MATRIX_4X4* dst, float angle, PI_VECTOR3 n_axis)
 {
-    float sy = sinf(ry);
-    float cy = cosf(ry);
+    float c = cosf(angle);
+    float s = sinf(angle);
 
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
-        cy, 0.0f, -sy, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        sy, 0.0f, cy, 0.0f,
+    float c1 = 1.0f - c;
+    float xc1 = n_axis.x*c1;
+    float yc1 = n_axis.y*c1;
+    float zc1 = n_axis.z*c1;
+    float xs = n_axis.x*s;
+    float ys = n_axis.y*s;
+    float zs = n_axis.z*s;
+    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
+        n_axis.x*xc1 + c, n_axis.x*yc1 + zs, n_axis.x*zc1 - ys, 0.0f,
+        n_axis.y*xc1 - zs, n_axis.y*yc1 + c, n_axis.y*zc1 + xs, 0.0f,
+        n_axis.z*xc1 + ys, n_axis.z*yc1 - xs, n_axis.z*zc1 + c, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
     };
+    return dst;
 }
+
+PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate4(PI_MATRIX_4X4* dst, float angle, PI_VECTOR3 axis)
+{
+    PI_VECTOR4 n_axis = { axis.x, axis.y, axis.z };
+    pi_vector_normalize4(&n_axis, n_axis);
+    return pi_matrix_rotate4n(dst, angle, *(PI_VECTOR3*)&n_axis);
+}
+
 
     /* View matrices */
 

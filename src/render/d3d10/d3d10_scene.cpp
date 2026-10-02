@@ -59,13 +59,14 @@ void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
     }
 }
 
-void pi_D3D10Backend::begin_scene(PI_HRENDERBACKEND_SCENE hscene, const PI_VECTOR4* clear_rgba) noexcept
+void pi_D3D10Backend::begin_scene(PI_HRENDERBACKEND_SCENE hscene, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_VECTOR4* clear_rgba) noexcept
 {
     PI_ASSERT(m_dxrtv != NULL);
 
     m_dxdevice->ClearRenderTargetView(m_dxrtv, clear_rgba->arr);
     m_dxdevice->ClearDepthStencilView(m_dxdsv, D3D10_CLEAR_DEPTH, 1.0f, 0);
     m_dxdevice->OMSetRenderTargets(1, &m_dxrtv, m_dxdsv);
+    this->bind_worldenv(hworldenv);
     this->bind_scene(hscene);
 }
 

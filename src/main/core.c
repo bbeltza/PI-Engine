@@ -1,5 +1,7 @@
 #include "../pi_internal.h"
 
+#include <stdio.h>
+
 /* Windowing API: */
 
 PI_HWND pi_get_main_window(PI_HGAME hgame)
@@ -23,8 +25,8 @@ static PI_EVENTTYPE GET_WINDOWEVENT_TYPE_FROMSDL(PI_EVENT* event, SDL_EventType 
             return PI_EVENT_WINDOW_HIDDEN;
         case SDL_EVENT_WINDOW_MOVED:
             return PI_EVENT_WINDOW_MOVED;
-        case SDL_EVENT_WINDOW_RESIZED:
-            return PI_EVENT_WINDOW_RESIZED;
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+            return PI_EVENT_WINDOW_SIZE;
         case SDL_EVENT_WINDOW_MINIMIZED:
             return PI_EVENT_WINDOW_MINIMIZED;
         case SDL_EVENT_WINDOW_MAXIMIZED:
@@ -107,7 +109,7 @@ bool pi_map_sdl_event(PI_EVENT* event, const SDL_Event* sdlevent)
         case SDL_EVENT_WINDOW_SHOWN: SDL_FALLTHROUGH;
         case SDL_EVENT_WINDOW_HIDDEN: SDL_FALLTHROUGH;
         case SDL_EVENT_WINDOW_MOVED: SDL_FALLTHROUGH;
-        case SDL_EVENT_WINDOW_RESIZED: SDL_FALLTHROUGH;
+        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: SDL_FALLTHROUGH;
         case SDL_EVENT_WINDOW_MINIMIZED: SDL_FALLTHROUGH;
         case SDL_EVENT_WINDOW_MAXIMIZED: SDL_FALLTHROUGH;
         case SDL_EVENT_WINDOW_MOUSE_ENTER: SDL_FALLTHROUGH;

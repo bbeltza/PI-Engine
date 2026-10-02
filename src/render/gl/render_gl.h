@@ -16,6 +16,9 @@
 typedef struct PI_RENDERBACKEND {
     void* happy;
 } pi_GLbackend;
+typedef struct PI_RENDERBACKEND_WORLDENV {
+    GLenum alotofenums[67];
+} pi_GLworldenv;
 typedef struct PI_RENDERBACKEND_SCENE {
     GLuint ubo;
 } pi_GLscene;

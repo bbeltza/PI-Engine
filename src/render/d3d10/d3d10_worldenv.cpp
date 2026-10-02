@@ -71,7 +71,7 @@ void pi_D3D10Backend::bind_worldenv(PI_HRENDERBACKEND_WORLDENV hworldenv) noexce
     }
 }
 
-void pi_D3D10Backend::destroy_worldenv(PI_HRENDERBACKEND_WORLDENV hworldenv) noexcept {
+void pi_D3D10Backend::destroy_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworldenv) noexcept {
     if (hworldenv == m_lastworldenv) {
         bind_worldenv(NULL);
     }

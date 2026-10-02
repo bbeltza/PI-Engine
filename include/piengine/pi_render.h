@@ -82,10 +82,10 @@ PI_EXTERN_C PI_HMESH pi_create_mesh(PI_HGAME hgame, int num_vertices, const PI_V
 PI_EXTERN_C void pi_destroy_mesh(PI_HMESH hmesh);
 
 PI_EXTERN_C PI_HWORLDENV pi_create_worldenvironment(PI_HGAME hgame, const PI_WORLDENV_DESC* pdesc);
-PI_EXTERN_C void pi_destroy_worldenironment(PI_HWORLDENV hworldenv);
+PI_EXTERN_C void pi_release_worldenvironment(PI_HWORLDENV hworldenv);
 
-PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame, bool set_current);
-PI_EXTERN_C void pi_release_scene(PI_HSCENE hscene);
+PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame, PI_HWORLDENV hworldenv);
+PI_EXTERN_C void pi_destroy_scene(PI_HSCENE hscene);
 
 PI_EXTERN_C PI_HSCENE pi_set_current_scene(PI_HGAME hgame, PI_HSCENE hscene);
 PI_EXTERN_C PI_HSCENE pi_get_current_scene(PI_HGAME hgame);
@@ -120,6 +120,9 @@ typedef void (*PI_PFN_BACKEND_RENDER_CLOSE)(PI_HRENDERBACKEND hbackend);
 
 typedef bool (*PI_PFN_BACKEND_RENDER_CONFIGURE)(PI_HRENDERBACKEND hbackend, const PI_RENDER_CONFIGURE* configure);
 
+typedef bool (*PI_PFN_BACKEND_RENDER_CREATE_WORLDENVIRONMENT)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_WORLDENV_DESC* pdesc);
+typedef void (*PI_PFN_BACKEND_RENDER_DESTROY_WORLDENVIRONMENT)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_WORLDENV hworldenv);
+
 typedef bool (*PI_PFN_BACKEND_RENDER_CREATE_SCENE)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene);
 typedef void (*PI_PFN_BACKEND_RENDER_DESTROY_SCENE)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene);
 
@@ -133,7 +136,7 @@ typedef bool (*PI_PFN_BACKEND_RENDER_ALLOC_INSTBUFFER)(PI_HRENDERBACKEND hbacken
 typedef bool (*PI_PFN_BACKEND_RENDER_UPDATE_INSTBUFFER)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]);
 
 typedef void (*PI_PFN_BACKEND_RENDER_UPDATE_SCENE_VP)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix);
-typedef void (*PI_PFN_BACKEND_RENDER_BEGIN_SCENE)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_VECTOR4* clear_rgba);
+typedef void (*PI_PFN_BACKEND_RENDER_BEGIN_SCENE)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_VECTOR4* clear_rgba);
 typedef void (*PI_PFN_BACKEND_RENDER_END_SCENE)(PI_HRENDERBACKEND hbackend);
 
 typedef void (*PI_PFN_BACKEND_RENDER_SUBMIT_MESH)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned instance_count);
@@ -143,6 +146,8 @@ typedef struct PI_BACKEND_RENDER_CALLBACKS {
 
     PI_PFN_BACKEND_RENDER_CONFIGURE pfn_configure;
 
+    PI_PFN_BACKEND_RENDER_CREATE_WORLDENVIRONMENT pfn_create_worldenvironment;
+    PI_PFN_BACKEND_RENDER_DESTROY_WORLDENVIRONMENT pfn_destroy_worldenvironment;
     PI_PFN_BACKEND_RENDER_CREATE_SCENE pfn_create_scene;
     PI_PFN_BACKEND_RENDER_DESTROY_SCENE pfn_destroy_scene;
     PI_PFN_BACKEND_RENDER_CREATE_MESH pfn_create_mesh;
@@ -171,6 +176,7 @@ typedef struct PI_BACKEND_RENDER_CALLBACKS {
 #define ASSERT_BACKEND_CALLBACKS(callbacks) ASSERT_BACKEND_CALLBACKS_EX(callbacks, PI_ASSERT)
 
 typedef struct PI_BACKEND_RENDER_STRUCTURES {
+    size_t WORLDENV_size;
     size_t SCENE_size;
     size_t MESH_size;
     size_t INSTBUFFER_size;
@@ -179,6 +185,7 @@ typedef struct PI_BACKEND_RENDER_STRUCTURES {
 // Helpers to automatically fill in the backend object size structure using the defined types
 #define DEFINE_BACKEND_STRUCTURE(structures, n) (structures).n##_size = sizeof(struct PI_RENDERBACKEND_##n)
 #define DEFINE_BACKEND_STRUCTURES(structures) \
+            DEFINE_BACKEND_STRUCTURE(structures, WORLDENV); \
             DEFINE_BACKEND_STRUCTURE(structures, SCENE); \
             DEFINE_BACKEND_STRUCTURE(structures, MESH);  \
             DEFINE_BACKEND_STRUCTURE(structures, INSTBUFFER)

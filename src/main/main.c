@@ -94,6 +94,22 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         goto QUIT_FAIL;
     }
 
+    { // Process existing events from the queue added before AddEventWatch gets called.
+        SDL_PumpEvents();
+        int currevents = SDL_PeepEvents(NULL, 0, SDL_PEEKEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST);
+
+        SDL_Event* evs = SDL_stack_alloc(SDL_Event, currevents);
+        if (SDL_PeepEvents(evs, currevents, SDL_PEEKEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST) == currevents) {
+            for (int i = 0; i < currevents; i++) {
+                _event_watch(hgame, &evs[i]);
+            }
+        }
+        else {
+            printf("SDL_PeepEvents failed: \"%s\"", SDL_GetError());
+        }
+        SDL_stack_free(evs);
+    }
+
     SDL_AddEventWatch(_event_watch, hgame);
     int run = 1;
     SDL_Event ev;

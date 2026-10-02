@@ -150,24 +150,11 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
     m_dxdevice->IASetInputLayout(m_dxinputlayout);
     m_dxdevice->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    m_testworldenv = new pi_D3D10WorldEnv;
-    PI_WORLDENV_DESC wedesc{};
-    wedesc.rasterizer.cullflags = PI_CULL_NONE;
-    wedesc.rasterizer.fillmode = PI_FILL_SOLID;
-    wedesc.depth.depthcompare = PI_COMPARE_LESS;
-    wedesc.depth.writeenable = true;
-    wedesc.multisample.samples = 1;
-
-    assert(create_worldenvironment(m_testworldenv, &wedesc));
-    bind_worldenv(m_testworldenv);
-
     return true;
 }
 
 void pi_D3D10Backend::release_objects() noexcept
 {
-    destroy_worldenv(m_testworldenv);
-
     COMRELEASESAFE(m_dxrtv);
     COMRELEASE(m_dxinputlayout);
     COMRELEASE(m_dx_ps_basic);
@@ -206,7 +193,7 @@ void pi_D3D10Backend::configure(const PI_RENDER_CONFIGURE* info) noexcept
     COMCHECKCALL(m_dxswapchain->GetBuffer(0, IID_PPV_ARGS(&backbuffer)));
 
     D3D10_RENDER_TARGET_VIEW_DESC rtvdesc = {};
-    rtvdesc.ViewDimension = D3D10_RTV_DIMENSION_TEXTURE2D;
+    rtvdesc.ViewDimension = D3D10_RTV_DIMENSION_TEXTURE2DMS;
     rtvdesc.Format = DEVICE_FORMAT;
     COMCHECKCALL(m_dxdevice->CreateRenderTargetView(backbuffer, &rtvdesc, &m_dxrtv));
 

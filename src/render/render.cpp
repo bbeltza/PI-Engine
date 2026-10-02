@@ -46,6 +46,9 @@ const PI_INIT_SYSTEM _PI_INIT_RENDER = {
     }
 };
 
+template <typename Alloc>
+using propagate_on_container_move_assignment = typename std::allocator_traits<Alloc>::propagate_on_container_move_assignment;
+
 PI_SYSTEM_RENDER::PI_SYSTEM_RENDER(PI_ENGINEDATA* hengine, bool& succeed) noexcept:
     m_sdlwnd(hengine->sdlwnd)
 {
@@ -63,6 +66,19 @@ PI_SYSTEM_RENDER::PI_SYSTEM_RENDER(PI_ENGINEDATA* hengine, bool& succeed) noexce
         return;
     }
 
+    m_objects.worldenvs = WORLDENV_LIST{ WORLDENV_ALLOC{ this->backend.structures.WORLDENV_size } };
+    m_objects.scenes = SCENE_LIST{ SCENE_ALLOC{ this->backend.structures.SCENE_size } };
+    m_objects.meshes = MESH_LIST{ MESH_ALLOC{ this->backend.structures.MESH_size } };
+
+    #define PROPAGATE_ERROR(n) "propagate_on_container_move_assignment for \"" #n "\" is not present."
+    static_assert(propagate_on_container_move_assignment<WORLDENV_ALLOC>::value == true, PROPAGATE_ERROR(WORLDENV_ALLOC));
+    static_assert(propagate_on_container_move_assignment<SCENE_ALLOC>::value == true, PROPAGATE_ERROR(SCENE_ALLOC));
+    static_assert(propagate_on_container_move_assignment<MESH_ALLOC>::value == true, PROPAGATE_ERROR(MESH_LIST));
+
+    PI_ASSERT(m_objects.worldenvs.get_allocator().backend_size() > 0);
+    PI_ASSERT(m_objects.scenes.get_allocator().backend_size() > 0);
+    PI_ASSERT(m_objects.meshes.get_allocator().backend_size() > 0);
+
     SDL_AddEventWatch(_s_event_watch, this);
     {
         int w, h;
@@ -79,8 +95,12 @@ PI_SYSTEM_RENDER::~PI_SYSTEM_RENDER() noexcept
 {
     SDL_RemoveEventWatch(_s_event_watch, this);
 
-    m_objects.scenes.clear();
     m_objects.meshes.clear();
+    m_objects.scenes.clear();
+    while (!m_objects.worldenvs.empty()) { // Detach any remaining world environments from the user, to be able to clean them up.
+        bool r = m_objects.worldenvs.back().detach_from_user();
+        assert(r == true);
+    }
 
     backend.callbacks.pfn_close(get_backend());
 }
@@ -135,21 +155,44 @@ PI_EXTERN_C void pi_destroy_mesh(PI_HMESH hmesh) {
     hmesh->renderer->destroy_mesh(hmesh);
 }
 
-PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame, bool set_current) {
-    auto engine = PI_ENGINE_FROM_HGAME(hgame);
-    auto scn = engine->subsystems.render->create_scene();
-    if (scn && set_current) {
-        engine->subsystems.render->set_current_scene(scn);
+PI_EXTERN_C PI_HWORLDENV pi_create_worldenvironment(PI_HGAME hgame, const PI_WORLDENV_DESC* pdesc)
+{
+    if (!hgame) {
+        return NULL;
     }
+
+    auto engine = PI_ENGINE_FROM_HGAME(hgame);
+    auto worldenv = engine->subsystems.render->create_worldenv(pdesc);
+    return worldenv;
+}
+
+PI_EXTERN_C void pi_release_worldenvironment(PI_HWORLDENV hworldenv) {
+    if (!hworldenv) {
+        return;
+    }
+
+    hworldenv->detach_from_user();
+}
+
+PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame, PI_HWORLDENV hworldenv) {
+    if (!hgame) {
+        return NULL;
+    }
+    if (!hworldenv) {
+        return NULL;
+    }
+
+    auto engine = PI_ENGINE_FROM_HGAME(hgame);
+    auto scn = engine->subsystems.render->create_scene(hworldenv);
 
     return scn;
 }
 
-PI_EXTERN_C void pi_release_scene(PI_HSCENE hscene) {
+PI_EXTERN_C void pi_destroy_scene(PI_HSCENE hscene) {
     if (!hscene) {
         return;
     }
-    hscene->renderer->release_scene(hscene);
+    hscene->renderer->destroy_scene(hscene);
 }
 
 #define HSCENE_ERROR reinterpret_cast<PI_HSCENE>(UINTPTR_MAX)

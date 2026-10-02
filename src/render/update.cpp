@@ -9,6 +9,7 @@ void PI_SYSTEM_RENDER::update(void) noexcept
 
     PI_HRENDERBACKEND hbackend = this->get_backend();
     PI_HRENDERBACKEND_SCENE hcurrscn = m_currentscn->get_backend();
+    PI_HRENDERBACKEND_WORLDENV hcurrworldenv = m_currentscn->worldenv->get_backend();
 
     if (m_currentscn->dirty.viewproj) {
         PI_MATRIX_4X4 vpmatrix;
@@ -55,7 +56,7 @@ void PI_SYSTEM_RENDER::update(void) noexcept
 
     }
 
-    backend.callbacks.pfn_begin_scene(hbackend, hcurrscn, &m_currentscn->clear_color);
+    backend.callbacks.pfn_begin_scene(hbackend, hcurrscn, hcurrworldenv, &m_currentscn->clear_color);
 
     for (auto it = m_currentscn->begin_instbufs(); it != m_currentscn->end_instbufs(); ++it)
     {

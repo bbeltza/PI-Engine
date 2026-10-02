@@ -34,29 +34,17 @@ PI_HMESH PI_SYSTEM_RENDER::create_mesh_indexed(int num_vertices, const PI_VERTEX
 
     /* Allocating the object */
     PI_HMESH hmesh;
-    {
-        auto p_rawmesh = operator new(sizeof(PI_MESH_IMPL) + backend.structures.MESH_size, std::nothrow);
-        if (!p_rawmesh) {
-            return NULL;
-        }
-
-        hmesh = new(p_rawmesh) PI_MESH_IMPL(this, num_vertices, vertices, num_indices, indices, index_type);
-        // PI_MESH_IMPL sets the `renderer` member to NULL if internal initialization fails
-        if (!hmesh->renderer) {
-            hmesh->~PI_MESH_IMPL();
-            operator delete(hmesh, std::nothrow);
-            return NULL;
-        }
+    m_objects.meshes.emplace_front(
+            this,
+            num_vertices, vertices,
+            num_indices, indices, index_type
+        );
+    hmesh = &m_objects.meshes.front();
+    if (!hmesh->renderer) {
+        REMOVE_CMP_PTR(m_objects.meshes, *hmesh);
+        return NULL;
     }
 
-    if (!m_freelists.mesh.empty()) {
-        size_t index = m_freelists.mesh.back();
-        m_freelists.mesh.pop_back();
-        m_objects.meshes.at(index).reset(hmesh);
-    }
-    else {
-        m_objects.meshes.emplace_back(hmesh);
-    }
     return hmesh;
 }
 
@@ -66,13 +54,7 @@ void PI_SYSTEM_RENDER::destroy_mesh(PI_HMESH hmesh) noexcept
         return;
     }
 
-    for (size_t i = 0; i < m_objects.meshes.size(); i++) {
-        auto& pmesh = m_objects.meshes.at(i);
-        if (pmesh.get() == hmesh) {
-            pmesh.reset();
-            break;
-        }
-    }
+    REMOVE_CMP_PTR(m_objects.meshes, *hmesh);
 }
 
 
