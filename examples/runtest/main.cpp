@@ -102,12 +102,19 @@ bool appcallbacks::update(PI_HGAME hgame) {
 
 PI_HWORLDENV create_game_worldenv(PI_HGAME hgame) noexcept
 {
-    PI_WORLDENV_DESC desc{};
-    desc.rasterizer.cullflags = PI_CULL_NONE;
-    desc.rasterizer.fillmode = PI_FILL_WIREFRAME;
-    desc.depth.depthcompare = PI_COMPARE_LESS_EQUAL;
-    desc.depth.writeenable = true;
-    desc.multisample.samples = 1;
+    PI_WORLDENV_RASTERIZER rasterizer{};
+    rasterizer.cullflags = PI_CULL_NONE;
+    rasterizer.fillmode = PI_FILL_SOLID;
+
+    PI_WORLDENV_DEPTH depth{};
+    depth.depthcompare = PI_COMPARE_LESS_EQUAL;
+    depth.writeenable = true;
+
+    PI_WORLDENV_MSAA multisample{};
+    multisample.samples = 2;
+    multisample.best_quality = true;
+
+    PI::WORLDENV_DESC desc{PI_WORLDEFFECT_NONE, rasterizer, depth, multisample};
     return pi_create_worldenvironment(hgame, &desc);
 }
 
@@ -142,7 +149,11 @@ gaem_t::gaem_t(bool& fail):
     m_hgroundinstance{ pi_add_scene_mesh(m_hscene, m_hsquare, NULL ) }
 {
     //pi_set_scene_view(m_hscene, i.m);
-    
+    if (!m_hworldenv) {
+        fail = true;
+        return;
+    }
+
     pi_set_current_scene(this, m_hscene);
 }
 

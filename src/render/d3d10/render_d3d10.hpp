@@ -9,6 +9,7 @@
 #include <common/comhelpers.h>
 
 #include <cstdio>
+#include <map>
 
 #ifndef PI_CPP
     #error "D3D10's backend is compiled in C++! Need a C++ compiler / include it in a .cpp file"
@@ -44,11 +45,47 @@ typedef HRESULT (WINAPI* PFN_D3D10_CREATE_DEVICE)(
         ID3D10Device      **ppDevice
     );
 
+
 #define pi_D3D10Backend PI_RENDERBACKEND
 #define pi_D3D10WorldEnv PI_RENDERBACKEND_WORLDENV
 #define pi_D3D10Scene PI_RENDERBACKEND_SCENE
 #define pi_D3D10Mesh PI_RENDERBACKEND_MESH
 #define pi_D3D10InstBuffer PI_RENDERBACKEND_INSTBUFFER
+
+typedef UINT64 SAMPLE_HASH;
+struct pi_D3D10sampledata
+{
+    ID3D10Texture2D* dxrender;
+    ID3D10Texture2D* dxdepthstencil;
+    ID3D10RenderTargetView* dxrtv;
+    ID3D10DepthStencilView* dxdsv;
+
+    pi_D3D10sampledata() = default;
+    pi_D3D10sampledata(const pi_D3D10sampledata&) = delete;
+    pi_D3D10sampledata(pi_D3D10sampledata&& other):
+        dxrender(other.dxrender),
+        dxdepthstencil(other.dxdepthstencil),
+        dxrtv(other.dxrtv),
+        dxdsv(other.dxdsv)
+    {
+        other.dxrender = NULL;
+        other.dxdepthstencil = NULL;
+        other.dxrtv = NULL;
+        other.dxdsv = NULL;
+    }
+
+    ~pi_D3D10sampledata() {
+        if (dxdepthstencil) {
+            COMRELEASE(dxdsv);
+            COMRELEASE(dxdepthstencil);
+        }
+        
+        if (dxrender) {
+            COMRELEASE(dxrtv);
+            COMRELEASE(dxrender);
+        }
+    }
+};
 
 struct pi_D3D10Backend
 {
@@ -85,16 +122,20 @@ private:
 private:
     ID3D10Device* m_dxdevice = NULL;
     IDXGISwapChain* m_dxswapchain = NULL;
+    ID3D10Texture2D* m_dxswapchainbuffer = NULL;
 
     ID3D10VertexShader* m_dx_vs_basic = NULL;
     ID3D10PixelShader* m_dx_ps_basic = NULL;
     
     ID3D10InputLayout* m_dxinputlayout = NULL;
 
-    ID3D10RenderTargetView* m_dxrtv = NULL;
+    ID3D10RenderTargetView* m_dxcurrentrtv = NULL;
+    ID3D10DepthStencilView* m_dxcurrentdsv = NULL;
 
-    ID3D10Texture2D* m_dxdepthstencil = NULL;
-    ID3D10DepthStencilView* m_dxdsv = NULL;
+    D3D10_TEXTURE2D_DESC m_swapchainbufferdesc;
+
+    UINT m_maxsamplequalitylevels[D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT];
+    std::map<SAMPLE_HASH, pi_D3D10sampledata> m_samplemap;
 private:
     PI_HRENDERBACKEND_SCENE m_lastscene = NULL;
     PI_HRENDERBACKEND_WORLDENV m_lastworldenv = NULL;
@@ -113,6 +154,11 @@ struct pi_D3D10WorldEnv
 
     ID3D10RasterizerState* dxrasterizer;
     ID3D10DepthStencilState* dxdepthstencil;
+
+    union {
+        DXGI_SAMPLE_DESC sample_desc;
+        SAMPLE_HASH sample_id;
+    };
 };
 
 struct pi_D3D10Scene

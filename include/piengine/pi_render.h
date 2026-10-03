@@ -55,27 +55,85 @@ typedef enum PI_WORLDEFFECT {
     PI_WORLDEFFECT_LIGHTS_DIRECTIONAL = 0x00000001, /* Enable directional lighting (It also implies ambient lighting) */
     PI_WORLDEFFECT_LIGHTS_POINT = 0x00000002,       /* Allow for point lights to be added */
     PI_WORLDEFFECT_LIGHTS_SPECULAR = 0x00000004,    /* Enable specular lighting */
-} PI_WORLDENV_EFFECT;
+} PI_WORLDEFFECT;
 typedef uint32_t PI_WORLDENV_EFFECTS;
+
+//
+
+
+typedef struct PI_WORLDENV_RASTERIZER {
+    PI_FILLMODE fillmode PI_MEMBER_DEFAULT(PI_FILL_SOLID);
+    PI_CULLFLAGS cullflags PI_MEMBER_DEFAULT(PI_CULL_NONE);
+} PI_WORLDENV_RASTERIZER;
+typedef struct PI_WORLDENV_DEPTH {
+    bool writeenable PI_MEMBER_DEFAULT(true);
+    PI_COMPARE_FUNC depthcompare PI_MEMBER_DEFAULT(PI_COMPARE_LESS);
+} PI_WORLDENV_DEPTH;
+typedef struct PI_WORLDENV_STENCIL {
+    uint32_t _unused;
+} PI_WORLDENV_STENCIL;
+typedef struct PI_WORLDENV_MSAA {
+    uint8_t samples PI_MEMBER_DEFAULT(1);
+    bool    best_quality;
+} PI_WORLDENV_MSAA;
 
 typedef struct PI_WORLDENV_DESC {
     PI_WORLDENV_EFFECTS effects;
-    struct PI_WORLDENV_RASTERIZER {
-        PI_FILLMODE fillmode;
-        PI_CULLFLAGS cullflags;
-    } rasterizer;
-    struct PI_WORLDENV_DEPTH {
-        bool writeenable;
-        PI_COMPARE_FUNC depthcompare;
-    } depth;
-    struct PI_WORLDENV_STENCIL {
-        uint32_t _unused;
-    } _reserved1;
-    struct PI_WORLDENV_MSAA {
-        uint8_t samples;
-        bool    best_quality;
-    } multisample;
+
+    const PI_WORLDENV_RASTERIZER* rasterizer;
+    const PI_WORLDENV_DEPTH* depth;
+    const PI_WORLDENV_STENCIL* _reserved1;
+    const PI_WORLDENV_MSAA* multisample;
 } PI_WORLDENV_DESC;
+
+#ifdef PI_CPP
+
+namespace PI
+{
+    struct WORLDENV_DESC: PI_WORLDENV_DESC {
+        constexpr WORLDENV_DESC() = default;
+        constexpr WORLDENV_DESC(
+            PI_WORLDENV_EFFECTS effects,
+            const PI_WORLDENV_RASTERIZER& rasterizer,
+            const PI_WORLDENV_DEPTH& depth,
+            const PI_WORLDENV_MSAA& multisample
+        ): 
+            PI_WORLDENV_DESC{
+                    effects,
+                    &rasterizer,
+                    &depth,
+                    NULL,
+                    &multisample
+                } {}
+        constexpr WORLDENV_DESC(
+            PI_WORLDENV_EFFECTS effects,
+            const PI_WORLDENV_RASTERIZER& rasterizer,
+            const PI_WORLDENV_DEPTH& depth
+        ):
+            PI_WORLDENV_DESC{
+                effects,
+                &rasterizer,
+                &depth,
+                NULL,
+                NULL
+            } {}
+        constexpr WORLDENV_DESC(
+            PI_WORLDENV_EFFECTS effects,
+            const PI_WORLDENV_RASTERIZER& rasterizer
+        ):
+            PI_WORLDENV_DESC{
+                effects,
+                &rasterizer,
+                NULL,
+                NULL,
+                NULL
+            } {}
+    };
+}
+
+#endif
+
+//
 
 PI_EXTERN_C PI_HMESH pi_create_mesh_indexed(PI_HGAME hgame, int num_vertices, const PI_VERTEX vertices[], int num_indices, const void* indices, PI_INDEX index_type);
 PI_EXTERN_C PI_HMESH pi_create_mesh(PI_HGAME hgame, int num_vertices, const PI_VERTEX vertices[]);

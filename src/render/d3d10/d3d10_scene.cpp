@@ -61,15 +61,34 @@ void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
 
 void pi_D3D10Backend::begin_scene(PI_HRENDERBACKEND_SCENE hscene, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_VECTOR4* clear_rgba) noexcept
 {
-    PI_ASSERT(m_dxrtv != NULL);
-
-    m_dxdevice->ClearRenderTargetView(m_dxrtv, clear_rgba->arr);
-    m_dxdevice->ClearDepthStencilView(m_dxdsv, D3D10_CLEAR_DEPTH, 1.0f, 0);
-    m_dxdevice->OMSetRenderTargets(1, &m_dxrtv, m_dxdsv);
     this->bind_worldenv(hworldenv);
     this->bind_scene(hscene);
+
+    PI_ASSERT(m_dxcurrentrtv != NULL);
+    m_dxdevice->ClearRenderTargetView(m_dxcurrentrtv, clear_rgba->arr);
+    if (m_dxcurrentdsv) {
+        m_dxdevice->ClearDepthStencilView(
+                m_dxcurrentdsv,
+                D3D10_CLEAR_DEPTH | D3D10_CLEAR_STENCIL, // Check if there's stenciling or not in the environment? Do we always need clearing in the world-env or can it be set by the user? (I think it should)
+                1.0f, 0
+            );
+    }
 }
 
 void pi_D3D10Backend::end_scene() noexcept {
+    ID3D10Resource* dxrender = NULL;
+    m_dxcurrentrtv->GetResource(&dxrender);
+    if (dxrender != m_dxswapchainbuffer) {
+        m_dxdevice->ResolveSubresource(
+                m_dxswapchainbuffer, 0,
+                dxrender, 0,
+                m_swapchainbufferdesc.Format
+            );
+    }
+    else {
+        m_dxcurrentrtv = NULL;
+    }
+    COMRELEASESAFE(dxrender);
+
     m_dxswapchain->Present(0, 0);
 }

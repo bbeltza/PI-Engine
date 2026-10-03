@@ -20,6 +20,7 @@ bool pi_D3D10Backend::create_mesh(PI_HRENDERBACKEND_MESH hmesh, const PI_VERTEX*
         hmesh->vertex_count = num_vertices;
     }
     else {
+        desc.BindFlags |= D3D10_BIND_INDEX_BUFFER;
         hmesh->index_offset = desc.ByteWidth;
         hmesh->vertex_count = num_indices;
         

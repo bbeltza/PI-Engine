@@ -17,7 +17,7 @@ PI_DLL& pi_D3D10Backend::_s_get_dll() noexcept {
     return dll;
 }
 
-constexpr UINT DEVICE_FLAGS = D3D10_CREATE_DEVICE_SINGLETHREADED;
+constexpr UINT DEVICE_FLAGS = D3D10_CREATE_DEVICE_SINGLETHREADED | D3D10_CREATE_DEVICE_DEBUG;
 constexpr UINT DEVICE_BACKBUFFERS = 1; // 1 for now should be fine right??
 constexpr DXGI_FORMAT DEVICE_FORMAT = DXGI_FORMAT_R10G10B10A2_UNORM;
 
@@ -81,6 +81,10 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
             &m_dxdevice
         ));
 
+    for (UINT i = 0, s = 1; i < D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT; i++, s++) {
+        COMCHECKCALL(m_dxdevice->CheckMultisampleQualityLevels(DEVICE_FORMAT, s, &m_maxsamplequalitylevels[i]));
+        //std::printf("%u %u\n", s, m_maxsamplequalitylevels[i]);
+    }
 
     {
         IDXGIDevice* dxgidevice = NULL;
@@ -155,7 +159,9 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
 
 void pi_D3D10Backend::release_objects() noexcept
 {
-    COMRELEASESAFE(m_dxrtv);
+    m_samplemap.clear();
+    COMRELEASESAFE(m_dxswapchainbuffer);
+
     COMRELEASE(m_dxinputlayout);
     COMRELEASE(m_dx_ps_basic);
     COMRELEASE(m_dx_vs_basic);
@@ -166,44 +172,20 @@ void pi_D3D10Backend::release_objects() noexcept
 void pi_D3D10Backend::configure(const PI_RENDER_CONFIGURE* info) noexcept
 {
     HRESULT hr;
-    COMRELEASESAFE(m_dxrtv);
-
-    COMRELEASESAFE(m_dxdsv);
-    COMRELEASESAFE(m_dxdepthstencil);
+    // Release all of the existing render buffers
+    //      Recreating them isn't done here anymore, it is done during beginning of the next frame.
+    m_samplemap.clear();
+    COMRELEASESAFE(m_dxswapchainbuffer);
 
     COMCHECKCALL(m_dxswapchain->ResizeBuffers(DEVICE_BACKBUFFERS, info->w, info->h, DXGI_FORMAT_UNKNOWN, 0));
     PI_ASSERT(!FAILED(hr));
 
-    {
-        D3D10_TEXTURE2D_DESC dsdesc = {};
-        dsdesc.Width = info->w;
-        dsdesc.Height = info->h;
-        dsdesc.MipLevels = 1;
-        dsdesc.ArraySize = 1;
-        dsdesc.Format = DXGI_FORMAT_D32_FLOAT;
-        dsdesc.SampleDesc = { 1, 0 };
-        dsdesc.Usage = D3D10_USAGE_DEFAULT;
-        dsdesc.BindFlags = D3D10_BIND_DEPTH_STENCIL;
-
-        COMCHECKCALL(m_dxdevice->CreateTexture2D(&dsdesc, NULL, &m_dxdepthstencil));
-        PI_ASSERT(!FAILED(hr));
-    }
-
-    ID3D10Resource* backbuffer = NULL;
-    COMCHECKCALL(m_dxswapchain->GetBuffer(0, IID_PPV_ARGS(&backbuffer)));
-
-    D3D10_RENDER_TARGET_VIEW_DESC rtvdesc = {};
-    rtvdesc.ViewDimension = D3D10_RTV_DIMENSION_TEXTURE2DMS;
-    rtvdesc.Format = DEVICE_FORMAT;
-    COMCHECKCALL(m_dxdevice->CreateRenderTargetView(backbuffer, &rtvdesc, &m_dxrtv));
-
-    COMCHECKCALL(m_dxdevice->CreateDepthStencilView(m_dxdepthstencil, NULL, &m_dxdsv));
+    COMCHECKCALL(m_dxswapchain->GetBuffer(0, IID_PPV_ARGS(&m_dxswapchainbuffer)));
+    m_dxswapchainbuffer->GetDesc(&m_swapchainbufferdesc);
 
     D3D10_VIEWPORT viewport{};
     viewport.Width = info->w;
     viewport.Height = info->h;
     viewport.MaxDepth = 1.0f;
     m_dxdevice->RSSetViewports(1, &viewport);
-
-    COMRELEASE(backbuffer);
 }
