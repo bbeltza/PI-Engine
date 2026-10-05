@@ -44,6 +44,7 @@ typedef struct pi_GLfuncs {
     PFNGLDRAWELEMENTSINSTANCEDPROC DrawElementsInstanced;
 
     PFNGLGETERRORPROC GetError;
+    PFNGLGETINTEGERVPROC GetIntegerv;
 } pi_GLfuncs;
 
 typedef void* (APIENTRYP PI_PFN_GLGETPROCADDRESS)(const char* procname);
@@ -58,7 +59,15 @@ typedef struct PI_RENDERBACKEND {
     SDL_GLContext glcontext;
 } pi_GLbackend;
 typedef struct PI_RENDERBACKEND_WORLDENV {
-    GLenum alotofenums[67];
+    GLenum polygonmode;
+    GLenum cullface;
+    GLenum frontface;
+
+    GLenum depthfunc;
+    GLboolean depthmask;
+    GLboolean depthenable;
+
+    GLsizei samples;
 } pi_GLworldenv;
 typedef struct PI_RENDERBACKEND_SCENE {
     GLuint ubo;

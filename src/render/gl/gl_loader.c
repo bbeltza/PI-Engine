@@ -39,5 +39,6 @@ bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_A
     PI_GLGETPROC(glfuncs, DrawElementsInstanced);
 
     PI_GLGETPROC(glfuncs, GetError);
+    PI_GLGETPROC(glfuncs, GetIntegerv);
     return true;
 }
