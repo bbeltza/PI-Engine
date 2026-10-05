@@ -13,6 +13,82 @@
 #pragma comment(lib, "D3D10.lib")
 #pragma comment(lib, "d3dcompiler.lib") // d3dcompiler.lib gets included, for D3DDisassemble.
 
+constexpr HRESULT ERRNO_TO_HR(errno_t err) {
+    switch (err)
+    {
+        case 0: return S_OK;
+        case ENOENT: return ERROR_FILE_NOT_FOUND;
+        case ENOMEM: return E_OUTOFMEMORY;
+        case EACCES: return E_ACCESSDENIED;
+        default: return E_FAIL;
+    }
+}
+
+struct D3D10IncludeHandler: ID3D10Include
+{
+    STDMETHOD(Open)(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
+    {
+        if (IncludeType != D3D_INCLUDE_LOCAL || IncludeType != D3D10_INCLUDE_LOCAL) {
+            return E_NOTIMPL;
+        }
+        
+        FILE* file;
+        errno_t err;
+        err = fopen_s(&file, pFileName, "rb");
+        if (err) {
+            return ERRNO_TO_HR(err);
+        }
+
+        long size;
+        void* data;
+        if (fseek(file, 0, SEEK_END)) {
+            goto ERRCLOSE;
+        }
+
+        size = ftell(file);
+        if (size == -1) {
+            err = errno;
+            goto ERRCLOSE;
+        }
+        if (!size) {
+            goto SUCCLOSE;
+        }
+        
+        if (fseek(file, 0, SEEK_SET)) {
+            err = errno;
+            goto ERRCLOSE;
+        }
+
+        data = operator new (size, std::nothrow);
+        if (!data) {
+            err = errno;
+            goto ERRCLOSE;
+        }
+
+        if (fread_s(data, size, size, 1, file) != 1) {
+            err = errno;
+            operator delete(data, std::nothrow);
+            goto ERRCLOSE;
+        }
+
+        *ppData = data;
+        *pBytes = size;
+    SUCCLOSE:
+        fclose(file);
+        return S_OK;
+
+    ERRCLOSE:
+        fclose(file);
+        return ERRNO_TO_HR(err);
+    }
+
+    STDMETHOD(Close)(LPCVOID pData) override
+    {
+        operator delete(const_cast<LPVOID>(pData), std::nothrow);
+        return ERRNO_TO_HR(errno);
+    }
+};
+
 const UINT COMPILER_FLAGS = D3D10_SHADER_WARNINGS_ARE_ERRORS |
                             0;
 
@@ -30,6 +106,7 @@ constexpr SHADER_INFO shaders[] = {
     { "ps_4_0", "PSmain", "ps_basic" }
 };
 
+
 bool compile_shader(const SHADER_INFO& info, FILE* output_h, LPCSTR input_data, SIZE_T input_len, LPCSTR input_path)
 {
     if (!output_h) {
@@ -38,15 +115,18 @@ bool compile_shader(const SHADER_INFO& info, FILE* output_h, LPCSTR input_data, 
 
     std::printf("Compiling \"%s\" at \"%s\"...\n", info.entry, input_path);
     HRESULT hr;
+
+    D3D10IncludeHandler includehandler;
     ID3D10Blob* shaderblob = NULL;
     ID3D10Blob* errorblob = NULL;
+    
     COMCHECKCALL(D3D10CompileShader(
             input_data,
             input_len,
             input_path,
             
             NULL,
-            NULL,
+            &includehandler,
 
             info.entry,
             info.profile,

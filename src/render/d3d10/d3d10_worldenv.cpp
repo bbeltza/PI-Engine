@@ -25,15 +25,25 @@ bool pi_D3D10Backend::create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworlde
         return false;
     }
 
-    UINT maxqualitylevel = m_maxsamplequalitylevels[pdesc->multisample->samples - 1];
-    if (!maxqualitylevel) {
-        return false;
+    if (pdesc->multisample->samples != 1) {
+        INT sampleidx = GET_SAMPLE_INDEX(pdesc->multisample->samples);
+        if (sampleidx == -1) {
+            return false;
+        }
+
+        UINT maxqualitylevel = m_maxsamplequalitylevels[sampleidx];
+        if (!maxqualitylevel) {
+            return false;
+        }
+        hworldenv->sample_desc.Count = pdesc->multisample->samples;
+        hworldenv->sample_desc.Quality = pdesc->multisample->best_quality ?
+            // If only quality 0 is supported (meaning, CheckMultisampleQualityLevels returns 1), enabling `best_quality` has the same effect as not enabling it.
+                                            maxqualitylevel - 1 : 0;
+    }
+    else {
+        hworldenv->sample_desc = { 1, 0 };
     }
 
-    hworldenv->sample_desc.Count = pdesc->multisample->samples;
-    hworldenv->sample_desc.Quality = pdesc->multisample->best_quality ?
-                                        maxqualitylevel - 1 :
-                                        0; // If only quality 0 is supported, enabling `best_quality` has the same effect as not enabling it.
 
     {
         D3D10_RASTERIZER_DESC desc = {};
@@ -114,6 +124,7 @@ void pi_D3D10Backend::bind_worldenv(PI_HRENDERBACKEND_WORLDENV hworldenv) noexce
             COMCHECKCALL(m_dxdevice->CreateTexture2D(&desc, NULL, &sd.dxrender));
             COMCHECKCALL(m_dxdevice->CreateRenderTargetView(sd.dxrender, NULL, &sd.dxrtv));
         }
+        m_dxcurrentrtv = NULL;
     }
 
     auto& sd = sampledata->second;

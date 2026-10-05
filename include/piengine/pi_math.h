@@ -3,6 +3,15 @@
 
 #include <piengine/pi_scalars.h>
 
+/* Basic scalar API */
+
+#define _PI_LERP_RIGHT(a, b, t) ( ((b) - (a)) * (t) ) /* Right operand of the lerp operation */
+#define PI_LERP(a, b, t) ( (a) + _PI_LERP_RIGHT(a, b, t) )
+#define PI_LERPA(a, b, t) (a) += _PI_LERP_RIGHT(a, b, t) /* Assign linear interpolation to `a` */
+
+#define PI_CLAMP(x, min, max) x > max ? max : ( x < min ? min : x )
+#define PI_CLAMPX(x, min, max) if (x > max) x = max; else if (x < min) x = min;
+
 /* Base matrix API */
 
 PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_generic(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)

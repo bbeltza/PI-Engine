@@ -13,8 +13,49 @@
 #include <GL/glcorearb.h>
 #include <SDL3/SDL_video.h>
 
+#include <stddef.h>
+#include <stdio.h>
+
+#define PI_GLGETPROCADDRESS pfn_GetProcAddress /* Used by `pi_gl_render_loadfuncs`, can be overridden with something else */
+#define PI_GLGETPROC(glfuncs, n) (glfuncs)->n = PI_GLGETPROCADDRESS("gl" #n)
+
+typedef struct pi_GLfuncs {
+    PFNGLVIEWPORTPROC Viewport;
+
+    PFNGLGENBUFFERSPROC GenBuffers;
+    PFNGLDELETEBUFFERSPROC DeleteBuffers;
+    PFNGLBINDBUFFERPROC BindBuffer;
+    PFNGLBUFFERDATAPROC BufferData;
+    PFNGLBUFFERSUBDATAPROC BufferSubData;
+    PFNGLMAPBUFFERPROC MapBuffer;
+    PFNGLUNMAPBUFFERPROC UnmapBuffer;
+
+    PFNGLGENVERTEXARRAYSPROC GenVertexArrays;
+    PFNGLDELETEVERTEXARRAYSPROC DeleteVertexArrays;
+    PFNGLBINDVERTEXARRAYPROC BindVertexArray;
+    PFNGLENABLEVERTEXATTRIBARRAYPROC EnableVertexAttribArray;
+    PFNGLVERTEXATTRIBPOINTERPROC VertexAttribPointer;
+
+    PFNGLBINDBUFFERBASEPROC BindBufferBase;
+
+    PFNGLCLEARBUFFERFVPROC ClearBufferfv;
+
+    PFNGLDRAWARRAYSINSTANCEDPROC DrawArraysInstanced;
+    PFNGLDRAWELEMENTSINSTANCEDPROC DrawElementsInstanced;
+
+    PFNGLGETERRORPROC GetError;
+} pi_GLfuncs;
+
+typedef void* (APIENTRYP PI_PFN_GLGETPROCADDRESS)(const char* procname);
+typedef void* (APIENTRYP PI_PFN_ALLOCATOR)(size_t n);
+
+PI_EXTERN_C bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_ALLOCATOR alloc, pi_GLfuncs** pp_glfuncs);
+
+/**/
+
 typedef struct PI_RENDERBACKEND {
-    void* happy;
+    pi_GLfuncs* glfuncs;
+    SDL_GLContext glcontext;
 } pi_GLbackend;
 typedef struct PI_RENDERBACKEND_WORLDENV {
     GLenum alotofenums[67];
@@ -23,18 +64,54 @@ typedef struct PI_RENDERBACKEND_SCENE {
     GLuint ubo;
 } pi_GLscene;
 typedef struct PI_RENDERBACKEND_MESH {
-    GLuint vbo;
+    GLuint vboandibo;
+    GLenum ibotype;
+    GLsizei vertcount;
+    GLuint indexoffset;
 } pi_GLmesh;
 typedef struct PI_RENDERBACKEND_INSTBUFFER {
-    GLuint vbo;
     GLuint vao;
+    GLuint vbo;
+
+    GLuint vbomesh;
 } pi_GLinstbuffer;
+
+/* Compile shader corresponding to the word environment effects passed in `effects`. And return a name given by `glCreateProgram`. */
+PI_EXTERN_C GLuint pi_gl_compile_shader(pi_GLbackend* hbackend, PI_WORLDENV_EFFECTS effects);
+/* `pi_gl_compile_shader` CAN store cached shaders (Returned by `glCreateShader`) inside the `hbackend`'s internal storage. This function will cleanup any shader that has been cached. This might slow down compilation times if `pi_gl_compile_shader` is called once again. */
+PI_EXTERN_C void pi_gl_clean_cached_shaders(pi_GLbackend* hbackend);
 
 /**/
 
-PI_EXTERN_C bool __pi_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEND_RENDER_DESC* pdesc);
+#define gl (*hbackend->glfuncs)
 
-PI_EXTERN_C void __pi_render_gl_close(pi_GLbackend* hbackend);
+PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEND_RENDER_DESC* pdesc);
+
+PI_EXTERN_C void fn_render_gl_close(pi_GLbackend* hbackend);
+PI_EXTERN_C bool fn_render_gl_configure(pi_GLbackend* hbackend, const PI_RENDER_CONFIGURE* info);
+PI_EXTERN_C bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv* hworldenv, const PI_WORLDENV_DESC* pdesc);
+PI_EXTERN_C void fn_render_gl_destroy_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv* hworldenv);
+PI_EXTERN_C bool fn_render_gl_create_scene(pi_GLbackend* hbackend, pi_GLscene* hscene);
+PI_EXTERN_C void fn_render_gl_destroy_scene(pi_GLbackend* hbackend, pi_GLscene* hscene);
+PI_EXTERN_C bool fn_render_gl_create_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh,
+                                        const PI_VERTEX* vertices, unsigned num_vertices,
+                                        const void* indices, unsigned num_indices,
+                                        PI_INDEX index_type
+                                    );
+PI_EXTERN_C void fn_render_gl_destroy_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh);
+PI_EXTERN_C bool fn_render_gl_create_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer);
+PI_EXTERN_C void fn_render_gl_destroy_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer);
+PI_EXTERN_C bool fn_render_gl_alloc_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer,
+                                        unsigned size, const PI_INSTANCE initial_data[]
+                                    );
+PI_EXTERN_C bool fn_render_gl_update_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer,
+                                        unsigned pos, unsigned count,
+                                        const PI_INSTANCE data[]
+                                    );
+PI_EXTERN_C void fn_render_gl_update_scene_vp(pi_GLbackend* hbackend, pi_GLscene* hscene, const PI_MATRIX_4X4* vpmatrix);
+PI_EXTERN_C void fn_render_gl_begin_scene(pi_GLbackend* hbackend, pi_GLscene* hscene, pi_GLworldenv* hworldenv, const PI_VECTOR4* clear_rgba);
+PI_EXTERN_C void fn_render_gl_end_scene(pi_GLbackend* hbackend);
+PI_EXTERN_C void fn_render_gl_submit_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh, pi_GLinstbuffer* hinstbuffer, unsigned instance_count);
 
 EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_GL;
 

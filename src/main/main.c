@@ -12,6 +12,7 @@
 #define PI_LOG(fmt, ...) printf(fmt "\n",##__VA_ARGS__)
 
 static bool _event_watch(void* userdata, SDL_Event* event);
+static void _update_scenes(PI_ENGINEDATA* engine, PI_HGAME hgame);
 
 PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
 {
@@ -34,20 +35,22 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
 
     /* Open systems */
     static const PI_INIT_SYSTEM* systems[] = {
-        &_PI_INIT_RENDER
+        &_PI_INIT_RENDER,
+        &_PI_INIT_PHYSICS
     };
 
-    #define SYSTEM_COUNT PI_ARRAYSIZE(systems)
     size_t system_sizes[SYSTEM_COUNT] = { 0 };
     for (size_t i = 0; i < SYSTEM_COUNT; i++) {
         const PI_INIT_SYSTEM* s = systems[i];
-        CHECK_CALLBACK(s->open);
+        CHECK_CALLBACK(s->pfn_open);
+        CHECK_CALLBACK(s->pfn_start);
     
-        if (!s->open(&system_sizes[i])) { // TODO: Handle failure
+        size_t size = s->pfn_open();
+        if (!size) { // TODO: Handle failure
             return -1;
         }
 
-        PI_ASSERT(system_sizes[i] != 0);
+        system_sizes[i] = size;
     }
 
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
@@ -67,29 +70,41 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
     PI_ENGINEDATA* engine = calloc(1, engine_size + gamesize);
     PI_ASSERT(engine != NULL);
 
+    SDL_WindowFlags windowflags = SDL_WINDOW_RESIZABLE;
+    #if PI_HAVE_GL
+        windowflags |= SDL_WINDOW_OPENGL;
+    #endif
+    
     engine->running = true;
-    engine->callbacks = *appinfo->callbacks;
-    engine->sdlwnd = SDL_CreateWindow(appinfo->name, 800, 600, SDL_WINDOW_RESIZABLE);
+    engine->appcallbacks = *appinfo->callbacks;
+    engine->sdlwnd = SDL_CreateWindow(appinfo->name, 800, 600, windowflags);
+
     if (!engine->sdlwnd) {
         goto QUIT_FAIL;
     }
 
-
+    engine->sizeof_scene = sizeof(struct PI_SCENE_IMPL);
     char* last_system = (char*)(engine) + sizeof(PI_ENGINEDATA);
     for (size_t i = 0; i < SYSTEM_COUNT; i++) {
-        if (!systems[i]->start((void*)last_system, engine)) {
+        PI_SYSTEM_DESC* pdesc = &engine->system_descs[i];
+        if (!systems[i]->pfn_start((void*)last_system, engine, pdesc)) {
             // TODO: Handle failure better
             printf("SYSTEM INITIALIZATION (at index: %zu) FAILED...\n", i);
             goto QUIT_FAIL;
         }
+        
+        CHECK_CALLBACK(pdesc->callbacks.pfn_close);
+        CHECK_CALLBACK(pdesc->callbacks.pfn_scene_deinit);
+        PI_ASSERT(pdesc->structures.SCENE_size != 0);
 
+        engine->sizeof_scene += pdesc->structures.SCENE_size;
         engine->subsystems.data[i] = (void*)last_system;
         last_system += system_sizes[i];
     }
 
     PI_HGAME hgame = (PI_HGAME)((char*)(engine) + engine_size);
     PI_ENGINE_FROM_HGAME(hgame) = engine;
-    callres = engine->callbacks.appstart(hgame, args);
+    callres = engine->appcallbacks.appstart(hgame, args);
     if (!callres) { // TODO: Handle failure
         goto QUIT_FAIL;
     }
@@ -129,23 +144,24 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         engine->dt_double = SDL_NS_TO_SECONDS((double)engine->dt_value);
         dt_start = rticks;
         
-
-        if (!engine->callbacks.appupdate(hgame)) {
-            continue;
-        }
-
-        for (size_t i = 0; i < SYSTEM_COUNT; i++) {
-            void* hsystem = engine->subsystems.data[i];
-            systems[i]->update(hsystem);
-        }
+        _update_scenes(engine, hgame);
     }
 
-    /* Cleanup all systems */
-        engine->callbacks.appclose(hgame);
+    /* Cleanup everything... */
+        engine->appcallbacks.appclose(hgame);
         
+        for (struct PI_SCENE_IMPL* cur = engine->scene_head; cur != NULL;) {
+            struct PI_SCENE_IMPL* next = cur->next;
+            pi_destroy_scene(cur);
+            cur = next;
+        }
+    
+        free(engine->bound_scenes);
+
         for (size_t i = 0; i < SYSTEM_COUNT; i++) {
             void* hsystem = engine->subsystems.data[i];
-            systems[i]->close(hsystem);
+            const PI_SYSTEM_CALLBACKS* pcallbacks = &engine->system_descs[i].callbacks;
+            pcallbacks->pfn_close(hsystem);
         }
     /**/
 
@@ -169,5 +185,64 @@ static bool _event_watch(void* userdata, SDL_Event* event) {
     PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
     PI_EVENT pievent;
     pi_map_sdl_event(&pievent, event);
-    return engine->callbacks.appevent(hgame, &pievent);
+    return engine->appcallbacks.appevent(hgame, &pievent);
+}
+
+//
+
+static void _update_scenes(PI_ENGINEDATA* engine, PI_HGAME hgame)
+{
+    unsigned scenecount = engine->bound_scene_last;
+    unsigned tmpscenecounts[SYSTEM_COUNT];
+    PI_HSYSTEMSCENE* tmpscenes = SDL_stack_alloc(PI_HSYSTEMSCENE, SYSTEM_COUNT * scenecount);
+
+    //if (tmpscenes)
+    {
+        for (size_t i = 0; i < SYSTEM_COUNT; i++) {
+            const PI_SYSTEM_CALLBACKS* pcallbacks = &engine->system_descs[i].callbacks;
+            if (!pcallbacks->pfn_preupdate && !pcallbacks->pfn_postupdate)
+                continue;
+            
+            unsigned countacc = 0;
+            PI_HSYSTEMSCENE* const tmpscenestart = &tmpscenes[i * scenecount];
+            for (unsigned j = 0; j < scenecount; j++) {
+                PI_HSCENE hscene = engine->bound_scenes[j];
+                if (!hscene)
+                    continue;
+                if (!hscene->initsubsystems.data[i])
+                    continue;
+                
+                tmpscenestart[countacc] = hscene->subsystems.data[i];
+                countacc++;
+            }
+            tmpscenecounts[i] = countacc;
+        }
+    }
+
+    for (size_t i = 0; i < SYSTEM_COUNT; i++) {
+        void* hsystem = engine->subsystems.data[i];
+        const PI_SYSTEM_CALLBACKS* pcallbacks = &engine->system_descs[i].callbacks;
+        if (pcallbacks->pfn_preupdate)
+            pcallbacks->pfn_preupdate(hsystem,
+                    tmpscenes + i*scenecount,
+                    tmpscenecounts[i]
+                );
+    }
+
+    if (!engine->appcallbacks.appupdate(hgame)) {
+        goto END_UPDATE;
+    }
+
+    for (size_t i = 0; i < SYSTEM_COUNT; i++) {
+        void* hsystem = engine->subsystems.data[i];
+        const PI_SYSTEM_CALLBACKS* pcallbacks = &engine->system_descs[i].callbacks;
+        if (pcallbacks->pfn_postupdate)
+            pcallbacks->pfn_postupdate(hsystem,
+                    tmpscenes + i*scenecount,
+                    tmpscenecounts[i]
+                );
+    }
+
+    END_UPDATE:
+        SDL_stack_free(tmpscenes);
 }

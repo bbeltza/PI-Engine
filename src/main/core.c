@@ -179,3 +179,156 @@ double pi_get_runtime_dt(PI_HGAME hgame) {
     PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
     return engine->dt_double;
 }
+
+/* Scene API: */
+
+PI_HSCENE pi_create_scene(PI_HGAME hgame)
+{
+    if (!hgame) {
+        return NULL;
+    }
+
+    PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
+    struct PI_SCENE_IMPL* hscene = malloc(engine->sizeof_scene);
+    if (!hscene) {
+        return NULL;
+    }
+
+    hscene->engine = engine;
+    hscene->boundindex = -1;
+
+    uint8_t* syssceneptr = (uint8_t*)(hscene + 1);
+    for (size_t i = 0; i < SYSTEM_COUNT; i++) {
+        hscene->initsubsystems.data[i] = false;
+        hscene->subsystems.data[i] = (struct PI_SYSTEM_SCENE*)syssceneptr;
+        syssceneptr += engine->system_descs[i].structures.SCENE_size;
+    }
+
+    hscene->next = NULL;
+    hscene->prev = engine->scene_head;
+    engine->scene_head = hscene;
+    if (hscene->prev) {
+        hscene->prev->next = hscene;
+    }
+    
+    return hscene;
+}
+
+void pi_destroy_scene(PI_HSCENE hscene)
+{
+    if (!hscene)
+        return;
+
+    if (hscene->next) {
+        PI_ASSERT(hscene->engine->scene_head != hscene);
+        PI_ASSERT(hscene->next->prev == hscene);
+        hscene->next->prev = hscene->prev;
+    }
+    else {
+        PI_ASSERT(hscene->engine->scene_head == hscene);
+        hscene->engine->scene_head = hscene->prev;
+    }
+
+    if (hscene->prev) {
+        hscene->prev->next = hscene->next;
+    }
+
+    for (size_t i = 0; i < SYSTEM_COUNT; i++)
+    {
+        if (!hscene->initsubsystems.data[i])
+            continue;
+        
+        void* hsystem = hscene->subsystems.data[i];
+        PI_SYSTEM_DESC* psystemdesc = &hscene->engine->system_descs[i];
+
+        psystemdesc->callbacks.pfn_scene_deinit(hsystem, hscene->subsystems.data[i]);
+    }
+
+    // TODO: Change allocator function calling names
+    free(hscene);
+}
+
+
+PI_EXTERN_C bool pi_enable_scene(PI_HSCENE hscene, int _index)
+{
+    if (!hscene) {
+        return false;
+    }
+
+    if (_index == -1) {
+        _index = hscene->engine->bound_scene_last;
+    }
+    else if (_index < 0) {
+        return false;
+    }
+
+    unsigned index = _index;
+    if (index >= hscene->engine->bound_scene_capacity)
+    {
+        unsigned newcap = 1 + index + hscene->engine->bound_scene_capacity;
+        PI_HSCENE* newsceneptr = malloc(sizeof(PI_HSCENE) * newcap);
+        if (!newsceneptr) {
+            return false;
+        }
+
+        memcpy(newsceneptr, hscene->engine->bound_scenes, sizeof(PI_HSCENE) * hscene->engine->bound_scene_last);
+        free(hscene->engine->bound_scenes);
+        hscene->engine->bound_scenes = newsceneptr;
+        hscene->engine->bound_scene_capacity = newcap;
+    }
+
+    if (index >= hscene->engine->bound_scene_last) {
+        memset(hscene->engine->bound_scenes + hscene->engine->bound_scene_last, 0x00, index);
+        hscene->engine->bound_scene_last = index + 1;
+    }
+    else if (hscene->engine->bound_scenes[index]) {
+        return false;
+    }
+
+    hscene->boundindex = index;
+    hscene->engine->bound_scenes[index] = hscene;
+
+    return true;
+}
+PI_EXTERN_C void pi_disable_scene(PI_HSCENE hscene)
+{
+    if (!hscene)
+        return;
+
+    if (hscene->boundindex == -1)
+        return;
+
+    PI_ASSERT(hscene->boundindex > 0);
+    PI_ASSERT((unsigned)hscene->boundindex < hscene->engine->bound_scene_last);
+
+    unsigned lastindex = hscene->engine->bound_scene_last - 1;
+    if (hscene->boundindex == lastindex) {
+        hscene->engine->bound_scene_last = lastindex;
+    }
+    hscene->engine->bound_scenes[hscene->boundindex] = NULL;
+}
+
+PI_EXTERN_C int pi_enabled_scene_index(PI_HSCENE hscene) {
+    if (!hscene) {
+        return -1;
+    }
+
+    return hscene->boundindex;
+}
+
+PI_EXTERN_C PI_HSCENE pi_enabled_scene_byindex(PI_HGAME hgame, int index) {
+    if (!hgame) {
+        return NULL;
+    }
+    if (index < 0) {
+        return NULL;
+    }
+
+    unsigned uindex = index;
+    PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
+    if (uindex >= engine->bound_scene_last) {
+        return NULL;
+    }
+    PI_ASSERT(engine->bound_scenes != NULL);
+    return engine->bound_scenes[uindex];
+}

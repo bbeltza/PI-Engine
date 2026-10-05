@@ -19,7 +19,7 @@ PI_DLL& pi_D3D10Backend::_s_get_dll() noexcept {
 
 constexpr UINT DEVICE_FLAGS = D3D10_CREATE_DEVICE_SINGLETHREADED | D3D10_CREATE_DEVICE_DEBUG;
 constexpr UINT DEVICE_BACKBUFFERS = 1; // 1 for now should be fine right??
-constexpr DXGI_FORMAT DEVICE_FORMAT = DXGI_FORMAT_R10G10B10A2_UNORM;
+constexpr DXGI_FORMAT DEVICE_FORMAT = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 size_t pi_D3D10Backend::s_calcsize() noexcept
 {
@@ -81,9 +81,16 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
             &m_dxdevice
         ));
 
-    for (UINT i = 0, s = 1; i < D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT; i++, s++) {
+    for (UINT i = 0, s = 2; s <= D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT; i++, s *= 2) {
+        PI_ASSERT(PI_ARRAYSIZE(m_maxsamplequalitylevels) > i);
+
         COMCHECKCALL(m_dxdevice->CheckMultisampleQualityLevels(DEVICE_FORMAT, s, &m_maxsamplequalitylevels[i]));
         //std::printf("%u %u\n", s, m_maxsamplequalitylevels[i]);
+        // Too high quality levels apparently make the edges look jaggier, I don't think we want that. Limit the number
+        UINT MAX_QUALITY_LEVELS = s + 1;
+        if (m_maxsamplequalitylevels[i] > MAX_QUALITY_LEVELS) {
+            m_maxsamplequalitylevels[i] = MAX_QUALITY_LEVELS;
+        }
     }
 
     {
@@ -97,7 +104,6 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
 
         DXGI_SWAP_CHAIN_DESC desc = {};
         desc.BufferDesc.Format = DEVICE_FORMAT;
-        desc.BufferDesc.Scaling = DXGI_MODE_SCALING_CENTERED;
         desc.SampleDesc = { 1, 0 };
         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         desc.BufferCount = DEVICE_BACKBUFFERS;
@@ -177,7 +183,7 @@ void pi_D3D10Backend::configure(const PI_RENDER_CONFIGURE* info) noexcept
     m_samplemap.clear();
     COMRELEASESAFE(m_dxswapchainbuffer);
 
-    COMCHECKCALL(m_dxswapchain->ResizeBuffers(DEVICE_BACKBUFFERS, info->w, info->h, DXGI_FORMAT_UNKNOWN, 0));
+    COMCHECKCALL(m_dxswapchain->ResizeBuffers(0, info->w, info->h, DXGI_FORMAT_UNKNOWN, 0));
     PI_ASSERT(!FAILED(hr));
 
     COMCHECKCALL(m_dxswapchain->GetBuffer(0, IID_PPV_ARGS(&m_dxswapchainbuffer)));

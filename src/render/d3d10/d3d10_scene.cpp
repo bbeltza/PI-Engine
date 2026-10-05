@@ -90,5 +90,5 @@ void pi_D3D10Backend::end_scene() noexcept {
     }
     COMRELEASESAFE(dxrender);
 
-    m_dxswapchain->Present(0, 0);
+    m_dxswapchain->Present(1, 0);
 }

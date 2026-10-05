@@ -25,7 +25,7 @@
     #define PI_EXTERN_C extern
     #define PI_CONSTEXPR_F PI_INLINE_C /* PI_INLINE_C gonna be defined after */
     #define PI_CONSTEXPR_V static const 
-    #define PI_MEMBER_DEFAULT(x)
+    #define PI_MEMBER_DEFAULT(...)
 #else
     #include <cstdint>
     #include <cstdarg>
@@ -39,13 +39,14 @@
     #undef PI_ALIGN_AS
     #define PI_ALIGN_AS alignas
 
-    #define PI_MEMBER_DEFAULT(x)  = x
+    #define PI_MEMBER_DEFAULT(...)  = __VA_ARGS__
 #endif
 
 
 /* Typedefs */
 
 typedef struct PI_GAME *PI_HGAME;
+typedef struct PI_SCENE_IMPL *PI_HSCENE;
 
 /* Some helper functions */
 

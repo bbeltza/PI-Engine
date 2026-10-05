@@ -52,6 +52,20 @@ typedef HRESULT (WINAPI* PFN_D3D10_CREATE_DEVICE)(
 #define pi_D3D10Mesh PI_RENDERBACKEND_MESH
 #define pi_D3D10InstBuffer PI_RENDERBACKEND_INSTBUFFER
 
+
+constexpr INT GET_SAMPLE_INDEX(UINT samples) {
+    switch (samples)
+    {
+        case 2: return 0;
+        case 4: return 1;
+        case 8: return 2;
+        case 16: return 3;
+        case 32: return 4;
+
+        default: return -1;
+    }    
+}
+
 typedef UINT64 SAMPLE_HASH;
 struct pi_D3D10sampledata
 {
@@ -134,7 +148,7 @@ private:
 
     D3D10_TEXTURE2D_DESC m_swapchainbufferdesc;
 
-    UINT m_maxsamplequalitylevels[D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT];
+    UINT m_maxsamplequalitylevels[GET_SAMPLE_INDEX(D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT) + 1];
     std::map<SAMPLE_HASH, pi_D3D10sampledata> m_samplemap;
 private:
     PI_HRENDERBACKEND_SCENE m_lastscene = NULL;

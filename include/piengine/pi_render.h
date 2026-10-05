@@ -5,7 +5,6 @@
 #include <piengine/pi_scalars.h>
 
 typedef struct PI_WORLDENV_IMPL *PI_HWORLDENV;
-typedef struct PI_SCENE_IMPL *PI_HSCENE;
 typedef struct PI_MESH_IMPL *PI_HMESH;
 typedef struct PI_INSTANCE_IMPL *PI_HINSTANCE;
 
@@ -15,8 +14,15 @@ typedef struct PI_VERTEX {
 } PI_VERTEX;
 
 typedef struct PI_INSTANCE {
-    PI_MATRIX_4X4 transform;
-    PI_VECTOR4 col;
+    PI_MATRIX_4X4 transform
+        PI_MEMBER_DEFAULT({
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f
+            });
+    PI_VECTOR4 col
+        PI_MEMBER_DEFAULT({ 1.0f, 1.0f, 1.0f, 1.0f });
 } PI_INSTANCE;
 
 typedef enum PI_INDEX {
@@ -52,9 +58,10 @@ typedef enum PI_COMPARE_FUNC {
 
 typedef enum PI_WORLDEFFECT {
     PI_WORLDEFFECT_NONE = 0x00000000,
-    PI_WORLDEFFECT_LIGHTS_DIRECTIONAL = 0x00000001, /* Enable directional lighting (It also implies ambient lighting) */
-    PI_WORLDEFFECT_LIGHTS_POINT = 0x00000002,       /* Allow for point lights to be added */
-    PI_WORLDEFFECT_LIGHTS_SPECULAR = 0x00000004,    /* Enable specular lighting */
+    PI_WORLDEFFECT_LIGHTING = 0x00000001, /* Enable lighting */
+    PI_WORLDEFFECT_SPECULAR = 0x00000002, /* Enable specular shading (likely to be phong-shading), LIGHTING must be enabled */
+
+    // PI_WORLDEFFECT_SHADOWS = 0x00000004, /* Enable shadow mapping */
 } PI_WORLDEFFECT;
 typedef uint32_t PI_WORLDENV_EFFECTS;
 
@@ -91,7 +98,7 @@ typedef struct PI_WORLDENV_DESC {
 namespace PI
 {
     struct WORLDENV_DESC: PI_WORLDENV_DESC {
-        constexpr WORLDENV_DESC() = default;
+        constexpr WORLDENV_DESC(): PI_WORLDENV_DESC{} {}
         constexpr WORLDENV_DESC(
             PI_WORLDENV_EFFECTS effects,
             const PI_WORLDENV_RASTERIZER& rasterizer,
@@ -134,6 +141,7 @@ namespace PI
 #endif
 
 //
+//
 
 PI_EXTERN_C PI_HMESH pi_create_mesh_indexed(PI_HGAME hgame, int num_vertices, const PI_VERTEX vertices[], int num_indices, const void* indices, PI_INDEX index_type);
 PI_EXTERN_C PI_HMESH pi_create_mesh(PI_HGAME hgame, int num_vertices, const PI_VERTEX vertices[]);
@@ -142,11 +150,8 @@ PI_EXTERN_C void pi_destroy_mesh(PI_HMESH hmesh);
 PI_EXTERN_C PI_HWORLDENV pi_create_worldenvironment(PI_HGAME hgame, const PI_WORLDENV_DESC* pdesc);
 PI_EXTERN_C void pi_release_worldenvironment(PI_HWORLDENV hworldenv);
 
-PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame, PI_HWORLDENV hworldenv);
-PI_EXTERN_C void pi_destroy_scene(PI_HSCENE hscene);
-
-PI_EXTERN_C PI_HSCENE pi_set_current_scene(PI_HGAME hgame, PI_HSCENE hscene);
-PI_EXTERN_C PI_HSCENE pi_get_current_scene(PI_HGAME hgame);
+PI_EXTERN_C bool pi_init_render_scene(PI_HSCENE hscene, PI_HWORLDENV hworldenv);
+// void pi_deinit_render_scene(PI_HSCENE hscene);
 
 PI_EXTERN_C bool pi_set_scene_clear_color(PI_HSCENE hscene, float r, float g, float b, float a);
 PI_EXTERN_C bool pi_set_scene_projection(PI_HSCENE hscene, const PI_MATRIX_4X4* mproj);

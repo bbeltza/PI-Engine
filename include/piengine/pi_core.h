@@ -435,12 +435,13 @@ typedef enum PI_MOUSEBUTTON {
     PI_BUTTON_PRESS = PI_MOUSE_LEFT
 } PI_MOUSEBUTTON;
 
+#define PI_BUTTON_MASK(x) (1 << ((x)-1))
 typedef enum PI_BUTTONMASK {
-    PI_MSTATE_LEFT = 1 << PI_MOUSE_LEFT,
-    PI_MSTATE_MIDDLE = 2 << PI_MOUSE_MIDDLE,
-    PI_MSTATE_RIGHT = 3 << PI_MOUSE_RIGHT,
-    PI_MSTATE_X1 = 4 << PI_MOUSE_X1,
-    PI_MSTATE_X2 = 5 << PI_MOUSE_X2,
+    PI_MSTATE_LEFT = PI_BUTTON_MASK(PI_MOUSE_LEFT),
+    PI_MSTATE_MIDDLE = PI_BUTTON_MASK(PI_MOUSE_MIDDLE),
+    PI_MSTATE_RIGHT = PI_BUTTON_MASK(PI_MOUSE_RIGHT),
+    PI_MSTATE_X1 = PI_BUTTON_MASK(PI_MOUSE_X1),
+    PI_MSTATE_X2 = PI_BUTTON_MASK(PI_MOUSE_X2),
 } PI_BUTTONMASK;
 
 typedef uint32_t PI_BUTTONSTATE;
@@ -539,5 +540,18 @@ bool pi_map_sdl_event(PI_EVENT* dst, const union SDL_Event* event); // Returns `
 /* Runtime API */
 PI_EXTERN_C double pi_get_runtime_dt(PI_HGAME hgame);
 PI_INLINE_C float pi_get_runtime_dtf(PI_HGAME hgame) { return (float)pi_get_runtime_dt(hgame); }
+
+/* Scene API */
+
+PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame);
+PI_EXTERN_C void pi_destroy_scene(PI_HSCENE hscene);
+
+PI_EXTERN_C bool pi_enable_scene(PI_HSCENE hscene, int index);
+PI_EXTERN_C void pi_disable_scene(PI_HSCENE hscene);
+
+PI_EXTERN_C int pi_enabled_scene_index(PI_HSCENE hscene);
+PI_EXTERN_C PI_HSCENE pi_enabled_scene_byindex(PI_HGAME hgame, int index);
+
+// PI_EXTERN_C void pi_shrink_bound_scene_container(PI_HGAME hgame, bool shrinkmemory);
 
 #endif

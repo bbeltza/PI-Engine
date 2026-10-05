@@ -1,6 +1,6 @@
 #include "render_internal.hpp"
 
-PI_HINSTANCE PI_SCENE_IMPL::add_scene_mesh(PI_HMESH hmesh, const PI_INSTANCE* instance) noexcept
+PI_HINSTANCE PI_SYSTEM_SCENE::add_scene_mesh(PI_HMESH hmesh, const PI_INSTANCE* instance) noexcept
 {
     if (m_instance_set.find(hmesh) == m_instance_set.end()) {
         /* Allocate Instance buffer for the mesh if it hasn't been allocated yet */

@@ -154,10 +154,10 @@ private:
                                  // Bit REF_MASK (0x80000000) is set upon creation when the world environment hasn't been released using `pi_release_worldenvironment`
 };
 
-struct PI_SCENE_IMPL
+struct PI_SYSTEM_SCENE
 {
-    PI_SCENE_IMPL(PI_SYSTEM_RENDER* _renderer, PI_HWORLDENV _hworldenv);
-    ~PI_SCENE_IMPL();
+    PI_SYSTEM_SCENE(PI_SYSTEM_RENDER* _renderer, PI_HWORLDENV _hworldenv);
+    ~PI_SYSTEM_SCENE();
 
     PI_SYSTEM_RENDER* renderer;
     PI_WORLDENV_IMPL* worldenv;
@@ -175,17 +175,15 @@ struct PI_SCENE_IMPL
         return reinterpret_cast<PI_HRENDERBACKEND_SCENE>(this + 1);
     }
 
-    PI_INSTMAP::iterator begin_instbufs() noexcept {
-        return m_instance_set.begin();
-    }
-    PI_INSTMAP::iterator end_instbufs() noexcept {
-        return m_instance_set.end();
-    }
-
+    bool update() noexcept;
 public:
     PI_HINSTANCE add_scene_mesh(PI_HMESH hmesh, const PI_INSTANCE* instance) noexcept;
 private:
     PI_INSTMAP m_instance_set;
+    
+    bool _update_dirty() noexcept;
+    bool _update_instances() noexcept;
+    bool _submit_scene() noexcept;
 };
 
 struct PI_MESH_IMPL
@@ -234,37 +232,28 @@ struct PI_SYSTEM_RENDER
     PI_SYSTEM_RENDER(PI_ENGINEDATA* hengine, bool& succeed) noexcept;
     ~PI_SYSTEM_RENDER() noexcept;
 
+    bool init_scene(PI_HSYSTEMSCENE hscene, PI_HWORLDENV hworldenv) noexcept;
+    //void deinit_scene(PI_HSYSTEMSCENE hscene) noexcept;
+
     PI_HWORLDENV create_worldenv(const PI_WORLDENV_DESC* pdesc) noexcept;
-    PI_HSCENE create_scene(PI_HWORLDENV hworldenv) noexcept;
     PI_HMESH create_mesh_indexed(int num_vertices, const PI_VERTEX vertices[], int num_indices, const void* indices, PI_INDEX index_type) noexcept;
 
     void remove_worldenv(PI_HWORLDENV hworldenv) noexcept;
     void destroy_mesh(PI_HMESH hmesh) noexcept;
-    void destroy_scene(PI_HSCENE hscene) noexcept;
-
-    PI_HSCENE set_current_scene(PI_HSCENE hscene) noexcept;
-    PI_HSCENE get_current_scene() const noexcept {
-        return m_currentscn;
-    }
     
     PI_BACKEND_RENDER_INFO backend;
     PI_HRENDERBACKEND get_backend() noexcept {
         return reinterpret_cast<PI_HRENDERBACKEND>(this + 1);
     }
 
-    void update(void) noexcept;
+    void update(PI_HSYSTEMSCENE hsysscenes[], unsigned scenecount) noexcept;
 private:
-    PI_HSCENE m_currentscn = NULL;
-
     using WORLDENV_LIST = PI_BACKEND_LIST<PI_WORLDENV_IMPL>;
-    using SCENE_LIST = PI_BACKEND_LIST<PI_SCENE_IMPL>;
     using MESH_LIST = PI_BACKEND_LIST<PI_MESH_IMPL>;
     using WORLDENV_ALLOC = WORLDENV_LIST::allocator_type;
-    using SCENE_ALLOC = SCENE_LIST::allocator_type;
     using MESH_ALLOC = MESH_LIST::allocator_type;
     struct {
         WORLDENV_LIST worldenvs{ WORLDENV_ALLOC{ 0 } };
-        SCENE_LIST scenes{ SCENE_ALLOC{ 0 } };
         MESH_LIST meshes{ MESH_ALLOC{ 0 } };
     } m_objects;
 

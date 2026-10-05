@@ -1,41 +1,20 @@
 #include "render_internal.hpp"
 
-
-
-PI_HSCENE PI_SYSTEM_RENDER::create_scene(PI_HWORLDENV hworldenv) noexcept
+bool PI_SYSTEM_RENDER::init_scene(PI_HSYSTEMSCENE hsysscene, PI_HWORLDENV hworldenv) noexcept
 {
-    PI_HSCENE hscene;
-    m_objects.scenes.emplace_front(this, hworldenv);
-    hscene = &m_objects.scenes.front();
-    if (!hscene->renderer) {
-        REMOVE_CMP_PTR(m_objects.scenes, *hscene);
-        return NULL;
+    new (hsysscene) PI_SYSTEM_SCENE{ this, hworldenv };
+    if (!hsysscene->renderer) {
+        hsysscene->~PI_SYSTEM_SCENE();
+        return false;
     }
 
-    PI_ASSERT(hscene->worldenv != NULL);
-
-    return hscene;
-}
-
-void PI_SYSTEM_RENDER::destroy_scene(PI_HSCENE hscene) noexcept {
-    if (m_currentscn == hscene) {
-        m_currentscn = NULL;
-    }
-
-    REMOVE_CMP_PTR(m_objects.scenes, *hscene);
-}
-
-PI_HSCENE PI_SYSTEM_RENDER::set_current_scene(PI_HSCENE hscene) noexcept
-{
-    auto prev = m_currentscn;
-    m_currentscn = hscene;
-
-    return prev;
+    PI_ASSERT(hsysscene->worldenv != NULL);
+    return true;
 }
 
 //
 
-PI_SCENE_IMPL::PI_SCENE_IMPL(PI_SYSTEM_RENDER* _renderer, PI_HWORLDENV _hworldenv):
+PI_SYSTEM_SCENE::PI_SYSTEM_SCENE(PI_SYSTEM_RENDER* _renderer, PI_HWORLDENV _hworldenv):
     renderer(_renderer),
     worldenv(_hworldenv),
 
@@ -61,7 +40,7 @@ PI_SCENE_IMPL::PI_SCENE_IMPL(PI_SYSTEM_RENDER* _renderer, PI_HWORLDENV _hworlden
     worldenv->acquire();
 }
 
-PI_SCENE_IMPL::~PI_SCENE_IMPL() {
+PI_SYSTEM_SCENE::~PI_SYSTEM_SCENE() {
     if (renderer) {
         renderer->backend.callbacks.pfn_destroy_scene(renderer->get_backend(), this->get_backend());
         worldenv->release();

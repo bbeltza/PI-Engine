@@ -2,10 +2,14 @@
 #include <piengine/pi_math.h>
 
 PI_EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_D3D10;
+PI_EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_GL;
 
 static const PI_BACKEND_RENDER* backends[] = {
     #if PI_HAVE_D3D10
-        &_PI_BACKEND_RENDER_D3D10
+        &_PI_BACKEND_RENDER_D3D10,
+    #endif
+    #if PI_HAVE_GL
+        &_PI_BACKEND_RENDER_GL,
     #endif
 };
 
@@ -13,8 +17,8 @@ static constexpr size_t NUM_BACKENDS = PI_ARRAYSIZE(backends);
 static const PI_BACKEND_RENDER* chosen_backend;
 
 const PI_INIT_SYSTEM _PI_INIT_RENDER = {
-    [](size_t* allocsize) noexcept -> bool {
-        *allocsize = sizeof(PI_SYSTEM_RENDER);
+    []() noexcept -> size_t {
+        size_t size = sizeof(PI_SYSTEM_RENDER);
         for (size_t i = 0; i < NUM_BACKENDS; i++) {
             auto backend = backends[i];
             PI_ASSERT(backend->pfn_calcsize != NULL);
@@ -22,27 +26,33 @@ const PI_INIT_SYSTEM _PI_INIT_RENDER = {
 
             size_t backendsize = backend->pfn_calcsize();
             if (backendsize) {
-                *allocsize += backendsize;
+                size += backendsize;
                 chosen_backend = backend;
-                return true;
+                return size;
             }
         }
-
-        *allocsize = 0;
-        return false;
+        return 0;
     },
-    [](void* hsystem, PI_ENGINEDATA* hengine) -> bool {
+    [](void* hsystem, PI_ENGINEDATA* hengine, PI_SYSTEM_DESC* pdesc) noexcept -> bool {
         bool succeed = false;
         auto renderer = new (hsystem) PI_SYSTEM_RENDER{ hengine, succeed };
+        
+        pdesc->structures.SCENE_size = sizeof(PI_SYSTEM_SCENE);
+        pdesc->structures.SCENE_size += renderer->backend.structures.SCENE_size;
+
+        pdesc->callbacks.pfn_close = [](void* hsystem) noexcept -> void {
+            auto renderer = static_cast<PI_SYSTEM_RENDER*>(hsystem);
+            renderer->~PI_SYSTEM_RENDER();
+        };
+        pdesc->callbacks.pfn_scene_deinit = [](void* hsystem, PI_HSYSTEMSCENE hscene) noexcept -> void {
+            hscene->~PI_SYSTEM_SCENE();
+        };
+        pdesc->callbacks.pfn_postupdate = [](void* hsystem, PI_HSYSTEMSCENE hsysscenes[], unsigned scenecount) noexcept -> void {
+            auto renderer = static_cast<PI_SYSTEM_RENDER*>(hsystem);
+            renderer->update(hsysscenes, scenecount); // Rename it to "post_update"?
+        };
+
         return succeed;
-    },
-    [](void* hsystem) -> void {
-        auto renderer = static_cast<PI_SYSTEM_RENDER*>(hsystem);
-        renderer->~PI_SYSTEM_RENDER();
-    },
-    [](void* hsystem) -> void {
-        auto renderer = static_cast<PI_SYSTEM_RENDER*>(hsystem);
-        renderer->update();
     }
 };
 
@@ -67,16 +77,13 @@ PI_SYSTEM_RENDER::PI_SYSTEM_RENDER(PI_ENGINEDATA* hengine, bool& succeed) noexce
     }
 
     m_objects.worldenvs = WORLDENV_LIST{ WORLDENV_ALLOC{ this->backend.structures.WORLDENV_size } };
-    m_objects.scenes = SCENE_LIST{ SCENE_ALLOC{ this->backend.structures.SCENE_size } };
     m_objects.meshes = MESH_LIST{ MESH_ALLOC{ this->backend.structures.MESH_size } };
 
     #define PROPAGATE_ERROR(n) "propagate_on_container_move_assignment for \"" #n "\" is not present."
     static_assert(propagate_on_container_move_assignment<WORLDENV_ALLOC>::value == true, PROPAGATE_ERROR(WORLDENV_ALLOC));
-    static_assert(propagate_on_container_move_assignment<SCENE_ALLOC>::value == true, PROPAGATE_ERROR(SCENE_ALLOC));
     static_assert(propagate_on_container_move_assignment<MESH_ALLOC>::value == true, PROPAGATE_ERROR(MESH_LIST));
 
     PI_ASSERT(m_objects.worldenvs.get_allocator().backend_size() > 0);
-    PI_ASSERT(m_objects.scenes.get_allocator().backend_size() > 0);
     PI_ASSERT(m_objects.meshes.get_allocator().backend_size() > 0);
 
     SDL_AddEventWatch(_s_event_watch, this);
@@ -96,7 +103,6 @@ PI_SYSTEM_RENDER::~PI_SYSTEM_RENDER() noexcept
     SDL_RemoveEventWatch(_s_event_watch, this);
 
     m_objects.meshes.clear();
-    m_objects.scenes.clear();
     while (!m_objects.worldenvs.empty()) { // Detach any remaining world environments from the user, to be able to clean them up.
         bool r = m_objects.worldenvs.back().detach_from_user();
         assert(r == true);
@@ -174,61 +180,62 @@ PI_EXTERN_C void pi_release_worldenvironment(PI_HWORLDENV hworldenv) {
     hworldenv->detach_from_user();
 }
 
-PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame, PI_HWORLDENV hworldenv) {
-    if (!hgame) {
+PI_EXTERN_C bool pi_init_render_scene(PI_HSCENE hscene, PI_HWORLDENV hworldenv) {
+    if (!hscene) {
         return NULL;
     }
     if (!hworldenv) {
         return NULL;
     }
+    
+    if (hscene->initsubsystems.render) {
+        return NULL;
+    }
 
-    auto engine = PI_ENGINE_FROM_HGAME(hgame);
-    auto scn = engine->subsystems.render->create_scene(hworldenv);
+    auto renderer = hscene->engine->subsystems.render;
+    if (!renderer->init_scene(hscene->subsystems.render, hworldenv)) {
+        return false;
+    }
 
-    return scn;
+    hscene->initsubsystems.render = true;
+    return true;
 }
 
-PI_EXTERN_C void pi_destroy_scene(PI_HSCENE hscene) {
+static inline bool _HSCENECHECK(PI_HSCENE hscene) {
     if (!hscene) {
-        return;
+        return true;
     }
-    hscene->renderer->destroy_scene(hscene);
-}
-
-#define HSCENE_ERROR reinterpret_cast<PI_HSCENE>(UINTPTR_MAX)
-
-PI_EXTERN_C PI_HSCENE pi_set_current_scene(PI_HGAME hgame, PI_HSCENE hscene) {
-    auto engine = hgame ? PI_ENGINE_FROM_HGAME(hgame) : NULL;
-    if (!engine || (hscene && engine->subsystems.render != hscene->renderer)) { // `hscene` can beNULL, used to unbind the scene from the game
-        return HSCENE_ERROR;
+    if (!hscene->initsubsystems.render) {
+        return true;
     }
 
-    return engine->subsystems.render->set_current_scene(hscene);
+    PI_ASSERT(hscene->engine);
+    PI_ASSERT(hscene->subsystems.render);
+    return false;
 }
-PI_EXTERN_C PI_HSCENE pi_get_current_scene(PI_HGAME hgame) {
-    if (!hgame) {
-        return HSCENE_ERROR;
-    }
 
-    auto engine = PI_ENGINE_FROM_HGAME(hgame);
-    return engine->subsystems.render->get_current_scene();
-}
+#define HSCENE_CHECKEX(hscene, hsysscene, ret) if (_HSCENECHECK(hscene)) return ret; \
+                                        auto hsysscene = (hscene)->subsystems.render
+#define HSCENE_CHECK(hscene, hsysscene) HSCENE_CHECKEX(hscene, hsysscene, false)
 
 PI_EXTERN_C bool pi_set_scene_clear_color(PI_HSCENE hscene, float r, float g, float b, float a) {
-    PI_ASSERT(hscene != NULL);
+    HSCENE_CHECK(hscene, hsysscene);
 
-    hscene->clear_color = PI_VECTOR4{ r, g, b, a };
+    hsysscene->clear_color = PI_VECTOR4{ r, g, b, a };
     return true;
 }
 PI_EXTERN_C bool pi_set_scene_projection(PI_HSCENE hscene, const PI_MATRIX_4X4* mproj) {
-    /* Meh just make a memcpy :D */
-    hscene->projection = *mproj;
-    hscene->dirty.viewproj = true; // Here we need to notify update state since the view/projection is to be updated inside a buffer (managed by the backend (D3D or GL....))
+    HSCENE_CHECK(hscene, hsysscene);
+
+    hsysscene->projection = *mproj;
+    hsysscene->dirty.viewproj = true;
     return true;
 }
 PI_EXTERN_C bool pi_set_scene_view(PI_HSCENE hscene, const PI_MATRIX_4X4* mview) {
-    hscene->view = *mview;
-    hscene->dirty.viewproj = true;
+    HSCENE_CHECK(hscene, hsysscene);
+
+    hsysscene->view = *mview;
+    hsysscene->dirty.viewproj = true;
     return true;
 }
 
@@ -236,22 +243,18 @@ PI_EXTERN_C PI_HINSTANCE pi_add_scene_mesh(PI_HSCENE hscene, PI_HMESH hmesh, con
     if (!hscene) {
         return NULL;
     }
-    if (!hmesh) {
-        return NULL;
-    }
-    if (hmesh->renderer != hscene->renderer) {
+
+    HSCENE_CHECKEX(hscene, hsysscene, NULL);
+    if (hscene->engine->subsystems.render != hmesh->renderer) {
         return NULL;
     }
 
-    static const PI_INSTANCE INSTANCE_DEFAULT = {
-        pi_identity_4x4(),
-        { 1.0f, 1.0f, 1.0f, 1.0f }
-    };
+    static const PI_INSTANCE INSTANCE_DEFAULT;
     if (!instance) {
         instance = &INSTANCE_DEFAULT;
     }
 
-    return hscene->add_scene_mesh(hmesh, instance);
+    return hsysscene->add_scene_mesh(hmesh, instance);
 }
 PI_EXTERN_C void pi_remove_scene_mesh(PI_HINSTANCE hmeshinst) {
     if (!hmeshinst) {
