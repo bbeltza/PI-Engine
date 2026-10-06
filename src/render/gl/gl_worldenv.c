@@ -12,24 +12,19 @@ bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv*
             hworldenv->polygonmode = GL_LINE;
             break;
     }
-    
-    enum {
-        PI_CULL_FRONT_BACK = PI_CULL_FRONT | PI_CULL_BACK
-    };
 
-    switch (pdesc->rasterizer->cullflags & PI_CULL_FRONT_BACK) {
+    switch (pdesc->rasterizer->cullflags & (PI_CULL_BACK | PI_CULL_FRONT)) {
         case PI_CULL_BACK:
             hworldenv->cullface = GL_BACK;
             break;
         case PI_CULL_FRONT:
             hworldenv->cullface = GL_FRONT;
             break;
-        case PI_CULL_FRONT_BACK:
-            hworldenv->cullface = GL_FRONT_AND_BACK;
-            break;
-        default:
+        case 0:
             hworldenv->cullface = 0;
             break;
+        default:
+            __assume(0);
     }
     if (pdesc->rasterizer->cullflags & PI_CULL_FRONT_COUNTERCLOCKWISE)
         hworldenv->frontface = GL_CCW;
@@ -41,7 +36,7 @@ bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv*
         hworldenv->depthenable = GL_FALSE;
     }
     else {
-        switch (hworldenv->depthfunc) {
+        switch (pdesc->depth->depthcompare) {
             case PI_COMPARE_NEVER:
                 hworldenv->depthfunc = GL_NEVER;
                 break;
@@ -68,7 +63,7 @@ bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv*
                 break;
         };
 
-        hworldenv->depthmask = pdesc->depth->writeenable;
+        hworldenv->depthmask = pdesc->depth->depthwrite;
     }
 
 /* ~Stencil state~ */

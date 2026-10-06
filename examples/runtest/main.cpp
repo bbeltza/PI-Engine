@@ -93,10 +93,11 @@ PI_HWORLDENV create_game_worldenv(PI_HGAME hgame) noexcept
     PI_WORLDENV_RASTERIZER rasterizer{};
     rasterizer.cullflags = PI_CULL_BACK;
     rasterizer.fillmode = PI_FILL_SOLID;
+    rasterizer.depthclip = true;
 
     PI_WORLDENV_DEPTH depth{};
-    depth.depthcompare = PI_COMPARE_LESS;
-    depth.writeenable = true;
+    depth.depthcompare = PI_COMPARE_LESS_EQUAL;
+    depth.depthwrite = true;
 
     PI_WORLDENV_MSAA multisample{};
     multisample.samples = 4;

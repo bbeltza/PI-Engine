@@ -51,9 +51,10 @@ bool pi_D3D10Backend::create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworlde
             case PI_FILL_SOLID: desc.FillMode = D3D10_FILL_SOLID; break;
             case PI_FILL_WIREFRAME: desc.FillMode = D3D10_FILL_WIREFRAME; break;
         }
-            if (pdesc->rasterizer->cullflags & PI_CULL_FRONT_COUNTERCLOCKWISE) {
+        if (pdesc->rasterizer->cullflags & PI_CULL_FRONT_COUNTERCLOCKWISE) {
             desc.FrontCounterClockwise = TRUE;
         }
+        desc.DepthClipEnable = pdesc->rasterizer->depthclip;
 
         if (!(pdesc->rasterizer->cullflags & (PI_CULL_FRONT | PI_CULL_BACK)))
             desc.CullMode = D3D10_CULL_NONE;
@@ -74,7 +75,7 @@ bool pi_D3D10Backend::create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworlde
     {
         D3D10_DEPTH_STENCIL_DESC desc = {};
         desc.DepthEnable = TRUE; 
-        desc.DepthWriteMask = pdesc->depth->writeenable ? D3D10_DEPTH_WRITE_MASK_ALL : D3D10_DEPTH_WRITE_MASK_ZERO;
+        desc.DepthWriteMask = pdesc->depth->depthwrite ? D3D10_DEPTH_WRITE_MASK_ALL : D3D10_DEPTH_WRITE_MASK_ZERO;
         desc.DepthFunc = d3d10_compare_from_pi(pdesc->depth->depthcompare);
 
         COMCHECKCALL(m_dxdevice->CreateDepthStencilState(&desc, &hworldenv->dxdepthstencil));

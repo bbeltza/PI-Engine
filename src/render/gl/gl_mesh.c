@@ -1,16 +1,5 @@
 #include "render_gl.h"
 
-void glcheck(pi_GLbackend* hbackend)
-{
-    GLenum err;
-    while (1) {
-        err = gl.GetError();
-        if (err == GL_NO_ERROR) {
-            break;
-        }
-        printf("%x\n", err);
-    }
-}
 
 bool fn_render_gl_create_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh,
                                         const PI_VERTEX* vertices, unsigned num_vertices,
@@ -62,8 +51,6 @@ void fn_render_gl_destroy_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh) {
 
 PI_EXTERN_C void fn_render_gl_submit_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh, pi_GLinstbuffer* hinstbuffer, unsigned instance_count)
 {
-    return;
-
     gl.BindVertexArray(hinstbuffer->vao);
     if (hinstbuffer->vbomesh != hmesh->vboandibo) {
         hinstbuffer->vbomesh = hmesh->vboandibo;
@@ -77,6 +64,7 @@ PI_EXTERN_C void fn_render_gl_submit_mesh(pi_GLbackend* hbackend, pi_GLmesh* hme
     }
 
     if (hmesh->ibotype) {
+        gl.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, hmesh->vboandibo);
         gl.DrawElementsInstanced(GL_TRIANGLES,
                 hmesh->vertcount, hmesh->ibotype,
                 (const void*)(size_t)hmesh->indexoffset,

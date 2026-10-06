@@ -1,5 +1,155 @@
 #include "render_gl.h"
 
+#define CASESTR(x) case x: return #x
+
+static const char* glerrortostr(GLenum err)
+{
+    switch (err)
+    {
+        CASESTR(GL_NO_ERROR);
+        CASESTR(GL_INVALID_ENUM);
+        CASESTR(GL_INVALID_VALUE);
+        CASESTR(GL_INVALID_OPERATION);
+        CASESTR(GL_INVALID_FRAMEBUFFER_OPERATION);
+        CASESTR(GL_OUT_OF_MEMORY);
+        CASESTR(GL_STACK_UNDERFLOW);
+        CASESTR(GL_STACK_OVERFLOW);
+        default: return NULL;
+    }
+}
+
+static void glerrorcheck(PFNGLGETERRORPROC pfn_glGetError, GLenum* lasterror, const char* name) {
+    GLenum err;
+    do {
+        err = pfn_glGetError();
+        if (err == GL_NO_ERROR)
+            break;
+
+        fprintf(stderr, "GL ERROR at %s: \"%s\" (%X)\n", name, glerrortostr(err), err);
+    } while (1);
+    *lasterror = err;
+}
+
+#if PI_GL_WIN32DEBUGTRAMPOLINE
+// This excludes the glGetError at the start of the structure
+#define GLFUNCS_SIZE (sizeof(pi_GLfuncs) - sizeof(void*))
+#define GLFUNCS_COUNT (GLFUNCS_SIZE / sizeof(void*))
+#define GLFUNCS_BEGIN(glfuncs) ((void**)(glfuncs) + 1)
+
+#define EMITOFFSET_RETADDRESS1 4
+#define EMITOFFSET_RETADDRESS2 89
+
+#define EMITOFFSET_GLFUNC 17
+
+#define EMITOFFSET_NAME 38
+#define EMITOFFSET_LASTERROR 48
+#define EMITOFFSET_GETERROR 58
+#define EMITOFFSET_ERRORCHECK 68
+
+const GLubyte EMIT_CODE_TEMPLATE[] = {
+    /* pop r10 */
+    0x41, 0x5A,
+    /* mov rax, 0xXXXXXXXXXXXXXXXX (return address pointer) */
+    0x48, 0xB8, 
+    0xCC, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD,
+    /* mov [rax], r10 */
+    0x4C, 0x89, 0x10,
+    /* mov rax, 0xXXXXXXXXXXXXXXXX (GL function pointer) */
+    0x48, 0xB8,
+    0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
+
+    /* call rax (Jump to the real function pointer) */
+    0xFF, 0xD0,
+
+    /* sub rsp, 0x28 */
+    0x48, 0x83, 0xEC, 0x28, 
+    /* mov [rsp+0x20], rax */
+    0x48, 0x89,
+    0x44, 0x24, 0x20,
+
+    /* mov r8, 0xXXXXXXXXXXXXXXXX (`name` parameter) */
+    0x4F, 0xB8,
+    0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
+    /* mov rdx, 0xXXXXXXXXXXXXXXXX (Pointer to the last error variable) */
+    0x48, 0xBA,
+    0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
+    /* mov rcx, 0xXXXXXXXXXXXXXXXX (pfn_glGetError) */
+    0x48, 0xB9,
+    0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
+    /* mov rax, 0xXXXXXXXXXXXXXXXX (Pointer to `glerrorcheck`) */
+    0x48, 0xB8,
+    0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
+    /* call rax (Jump to `glerrorcheck`) */
+    0xFF, 0xD0,
+
+    /* mov rax, [rsp+0x20] */
+    0x48, 0x8B,
+    0x44, 0x24, 0x20,
+    /* add rsp, 0x28 */
+    0x48, 0x83, 0xC4, 0x28, 
+    /* mov rcx, 0xXXXXXXXXXXXXXXXX (return address pointer again) */
+    0x48, 0xB9,
+    0xCC, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD,
+    /* push [rcx] */
+    0xFF, 0x31,
+    /* ret */
+    0xC3
+
+
+    /* Might add some padding bytes to align it well??? */
+};
+
+const unsigned NUMFUNCS = GLFUNCS_COUNT;
+const unsigned EMITTED_CODE_SIZE = GLFUNCS_COUNT * sizeof(EMIT_CODE_TEMPLATE);
+
+const char* FUNCTION_NAMES[GLFUNCS_COUNT];
+
+static void emit_gl_proc_code(pi_GLbackend* hbackend, unsigned funcindex)
+{
+    PI_ASSERT(funcindex < GLFUNCS_COUNT);
+    PI_ASSERT(hbackend->gldebugtrampolinecode != NULL);
+
+    void** pfunc = &GLFUNCS_BEGIN(hbackend->glfuncs)[funcindex];
+    GLubyte* data = hbackend->gldebugtrampolinecode + sizeof(EMIT_CODE_TEMPLATE)*funcindex;
+    memcpy(data, EMIT_CODE_TEMPLATE, sizeof(EMIT_CODE_TEMPLATE));
+
+    *(void**)(data + EMITOFFSET_RETADDRESS1) = &hbackend->trampolineretaddress;
+    *(void**)(data + EMITOFFSET_RETADDRESS2) = &hbackend->trampolineretaddress;
+    *(void**)(data + EMITOFFSET_GLFUNC) = *pfunc;
+    *(void**)(data + EMITOFFSET_NAME) = (void*)FUNCTION_NAMES[funcindex];
+    *(void**)(data + EMITOFFSET_LASTERROR) = &hbackend->gllasterror;
+    *(void**)(data + EMITOFFSET_GETERROR) = hbackend->glfuncs->GetError;
+    *(void**)(data + EMITOFFSET_ERRORCHECK) = glerrorcheck;
+
+    *pfunc = data;
+}
+
+bool pi_gl_init_trampoline(pi_GLbackend* hbackend)
+{
+    PI_ASSERT(hbackend->glfuncs != NULL);
+
+    hbackend->gldebugtrampolinecode = VirtualAlloc(NULL, EMITTED_CODE_SIZE, MEM_COMMIT, PAGE_READWRITE);
+    if (!hbackend->gldebugtrampolinecode) {
+        return false;
+    }
+
+    for (unsigned i = 0; i < NUMFUNCS; i++) {
+        emit_gl_proc_code(hbackend, i);
+    }
+
+    DWORD oldprotect;
+    VirtualProtect(hbackend->gldebugtrampolinecode, EMITTED_CODE_SIZE, PAGE_EXECUTE, &oldprotect);
+    FlushInstructionCache(GetCurrentProcess(), hbackend->gldebugtrampolinecode, EMITTED_CODE_SIZE);
+    return true;
+}
+
+void pi_gl_close_trampoline(pi_GLbackend* hbackend)
+{
+    VirtualFree(hbackend->gldebugtrampolinecode, 0, MEM_RELEASE);
+}
+
+#endif
+
 bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_ALLOCATOR alloc, pi_GLfuncs** pp_glfuncs)
 {
     if (!pfn_GetProcAddress) {
@@ -15,30 +165,77 @@ bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_A
         return false;
     }
 
-    PI_GLGETPROC(glfuncs, Viewport);
+#if PI_GL_WIN32DEBUGTRAMPOLINE
+    #define GETPROC(glfuncs, n) PI_GLGETPROC(glfuncs, n); FUNCTION_NAMES[funidx++] = "gl" #n
+    unsigned funidx = 0;
+#else
+    #define GETPROC PI_GLGETPROC
+#endif
 
-    PI_GLGETPROC(glfuncs, GenBuffers);
-    PI_GLGETPROC(glfuncs, DeleteBuffers);
-    PI_GLGETPROC(glfuncs, BindBuffer);
-    PI_GLGETPROC(glfuncs, BufferData);
-    PI_GLGETPROC(glfuncs, BufferSubData);
-    PI_GLGETPROC(glfuncs, MapBuffer);
-    PI_GLGETPROC(glfuncs, UnmapBuffer);
-
-    PI_GLGETPROC(glfuncs, GenVertexArrays);
-    PI_GLGETPROC(glfuncs, DeleteVertexArrays);
-    PI_GLGETPROC(glfuncs, BindVertexArray);
-    PI_GLGETPROC(glfuncs, EnableVertexAttribArray);
-    PI_GLGETPROC(glfuncs, VertexAttribPointer);
-
-    PI_GLGETPROC(glfuncs, BindBufferBase);
-
-    PI_GLGETPROC(glfuncs, ClearBufferfv);
-
-    PI_GLGETPROC(glfuncs, DrawArraysInstanced);
-    PI_GLGETPROC(glfuncs, DrawElementsInstanced);
 
     PI_GLGETPROC(glfuncs, GetError);
-    PI_GLGETPROC(glfuncs, GetIntegerv);
+    GETPROC(glfuncs, Viewport);
+
+    GETPROC(glfuncs, GenBuffers);
+    GETPROC(glfuncs, DeleteBuffers);
+    GETPROC(glfuncs, BindBuffer);
+    GETPROC(glfuncs, BufferData);
+    GETPROC(glfuncs, BufferSubData);
+    GETPROC(glfuncs, MapBuffer);
+    GETPROC(glfuncs, UnmapBuffer);
+
+    GETPROC(glfuncs, GenVertexArrays);
+    GETPROC(glfuncs, DeleteVertexArrays);
+    GETPROC(glfuncs, BindVertexArray);
+    GETPROC(glfuncs, EnableVertexAttribArray);
+    GETPROC(glfuncs, VertexAttribPointer);
+    GETPROC(glfuncs, VertexAttribDivisor);
+
+    GETPROC(glfuncs, CreateShader);
+    GETPROC(glfuncs, CreateProgram);
+    GETPROC(glfuncs, DeleteShader);
+    GETPROC(glfuncs, DeleteProgram);
+    GETPROC(glfuncs, ShaderSource);
+    GETPROC(glfuncs, CompileShader);
+    GETPROC(glfuncs, LinkProgram);
+    GETPROC(glfuncs, UseProgram);
+    GETPROC(glfuncs, AttachShader);
+    GETPROC(glfuncs, DetachShader);
+
+    GETPROC(glfuncs, GetUniformBlockIndex);
+    GETPROC(glfuncs, UniformBlockBinding);
+    GETPROC(glfuncs, BindBufferBase);
+    
+    GETPROC(glfuncs, GetShaderiv);
+    GETPROC(glfuncs, GetProgramiv);
+    GETPROC(glfuncs, GetShaderInfoLog);
+    GETPROC(glfuncs, GetProgramInfoLog);
+
+    GETPROC(glfuncs, GenFramebuffers);
+    GETPROC(glfuncs, DeleteFramebuffers);
+    GETPROC(glfuncs, GenRenderbuffers);
+    GETPROC(glfuncs, DeleteRenderbuffers);
+
+    GETPROC(glfuncs, BindFramebuffer);
+    GETPROC(glfuncs, BindRenderbuffer);
+    GETPROC(glfuncs, FramebufferRenderbuffer);
+    GETPROC(glfuncs, RenderbufferStorageMultisample);
+    GETPROC(glfuncs, ClearBufferfv);
+    GETPROC(glfuncs, BlitFramebuffer);
+
+    GETPROC(glfuncs, Enable);
+    GETPROC(glfuncs, Disable);
+
+    GETPROC(glfuncs, PolygonMode);
+    GETPROC(glfuncs, CullFace);
+    GETPROC(glfuncs, FrontFace);
+    GETPROC(glfuncs, DepthMask);
+    GETPROC(glfuncs, DepthFunc);
+
+    GETPROC(glfuncs, DrawArraysInstanced);
+    GETPROC(glfuncs, DrawElementsInstanced);
+
+    GETPROC(glfuncs, GetIntegerv);
+
     return true;
 }

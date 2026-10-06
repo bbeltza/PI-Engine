@@ -1,11 +1,14 @@
 #include "render_gl.h"
 
+// Something is giving me GL_INVALID_ENUM...
 
 bool fn_render_gl_create_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer)
 {
     hinstbuffer->vbomesh = 0;
     gl.GenVertexArrays(1, &hinstbuffer->vao);
     gl.GenBuffers(1, &hinstbuffer->vbo);
+
+    gl.BindVertexArray(hinstbuffer->vao);
 
     gl.EnableVertexAttribArray(0);
     gl.EnableVertexAttribArray(1);
@@ -15,7 +18,7 @@ bool fn_render_gl_create_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hin
     gl.EnableVertexAttribArray(5);
     gl.EnableVertexAttribArray(6);
 
-    gl.BindBuffer(GL_ARRAY_BUFFER, hinstbuffer->vao);
+    gl.BindBuffer(GL_ARRAY_BUFFER, hinstbuffer->vbo);
     
     gl.VertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(PI_INSTANCE), (void*)offsetof(PI_INSTANCE, transform.xx));
     gl.VertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(PI_INSTANCE), (void*)offsetof(PI_INSTANCE, transform.yx));
@@ -23,6 +26,12 @@ bool fn_render_gl_create_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hin
     gl.VertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(PI_INSTANCE), (void*)offsetof(PI_INSTANCE, transform.wx));
 
     gl.VertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(PI_INSTANCE), (void*)offsetof(PI_INSTANCE, col));
+
+    gl.VertexAttribDivisor(2, 1);
+    gl.VertexAttribDivisor(3, 1);
+    gl.VertexAttribDivisor(4, 1);
+    gl.VertexAttribDivisor(5, 1);
+    gl.VertexAttribDivisor(6, 1);
 
     return true;
 }

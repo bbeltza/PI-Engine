@@ -16,10 +16,15 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#if !defined(NDEBUG) && defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64))
+    #define PI_GL_WIN32DEBUGTRAMPOLINE 1
+#endif
+
 #define PI_GLGETPROCADDRESS pfn_GetProcAddress /* Used by `pi_gl_render_loadfuncs`, can be overridden with something else */
 #define PI_GLGETPROC(glfuncs, n) (glfuncs)->n = PI_GLGETPROCADDRESS("gl" #n)
 
 typedef struct pi_GLfuncs {
+    PFNGLGETERRORPROC GetError;
     PFNGLVIEWPORTPROC Viewport;
 
     PFNGLGENBUFFERSPROC GenBuffers;
@@ -35,15 +40,53 @@ typedef struct pi_GLfuncs {
     PFNGLBINDVERTEXARRAYPROC BindVertexArray;
     PFNGLENABLEVERTEXATTRIBARRAYPROC EnableVertexAttribArray;
     PFNGLVERTEXATTRIBPOINTERPROC VertexAttribPointer;
+    PFNGLVERTEXATTRIBDIVISORPROC VertexAttribDivisor;
 
+
+    PFNGLCREATESHADERPROC CreateShader;
+    PFNGLCREATEPROGRAMPROC CreateProgram;
+    PFNGLDELETESHADERPROC DeleteShader;
+    PFNGLDELETEPROGRAMPROC DeleteProgram;
+    PFNGLSHADERSOURCEPROC ShaderSource;
+    PFNGLCOMPILESHADERPROC CompileShader;
+    PFNGLLINKPROGRAMPROC LinkProgram;
+    PFNGLUSEPROGRAMPROC UseProgram;
+    PFNGLATTACHSHADERPROC AttachShader;
+    PFNGLDETACHSHADERPROC DetachShader;
+    
+    PFNGLGETUNIFORMBLOCKINDEXPROC GetUniformBlockIndex;
+    PFNGLUNIFORMBLOCKBINDINGPROC UniformBlockBinding;
     PFNGLBINDBUFFERBASEPROC BindBufferBase;
 
+    PFNGLGETSHADERIVPROC GetShaderiv;
+    PFNGLGETPROGRAMIVPROC GetProgramiv;
+    PFNGLGETSHADERINFOLOGPROC GetShaderInfoLog;
+    PFNGLGETPROGRAMINFOLOGPROC GetProgramInfoLog;
+
+    PFNGLGENFRAMEBUFFERSPROC GenFramebuffers;
+    PFNGLDELETEFRAMEBUFFERSPROC DeleteFramebuffers;
+    PFNGLGENRENDERBUFFERSPROC GenRenderbuffers;
+    PFNGLDELETERENDERBUFFERSPROC DeleteRenderbuffers;
+
+    PFNGLBINDFRAMEBUFFERPROC BindFramebuffer;
+    PFNGLBINDRENDERBUFFERPROC BindRenderbuffer;
+    PFNGLFRAMEBUFFERRENDERBUFFERPROC FramebufferRenderbuffer;
+    PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC RenderbufferStorageMultisample;
     PFNGLCLEARBUFFERFVPROC ClearBufferfv;
+    PFNGLBLITFRAMEBUFFERPROC BlitFramebuffer;
+
+    PFNGLENABLEPROC Enable;
+    PFNGLDISABLEPROC Disable;
+
+    PFNGLPOLYGONMODEPROC PolygonMode;
+    PFNGLCULLFACEPROC CullFace;
+    PFNGLFRONTFACEPROC FrontFace;
+    PFNGLDEPTHMASKPROC DepthMask;
+    PFNGLDEPTHFUNCPROC DepthFunc;
 
     PFNGLDRAWARRAYSINSTANCEDPROC DrawArraysInstanced;
     PFNGLDRAWELEMENTSINSTANCEDPROC DrawElementsInstanced;
 
-    PFNGLGETERRORPROC GetError;
     PFNGLGETINTEGERVPROC GetIntegerv;
 } pi_GLfuncs;
 
@@ -54,10 +97,6 @@ PI_EXTERN_C bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddre
 
 /**/
 
-typedef struct PI_RENDERBACKEND {
-    pi_GLfuncs* glfuncs;
-    SDL_GLContext glcontext;
-} pi_GLbackend;
 typedef struct PI_RENDERBACKEND_WORLDENV {
     GLenum polygonmode;
     GLenum cullface;
@@ -69,6 +108,23 @@ typedef struct PI_RENDERBACKEND_WORLDENV {
 
     GLsizei samples;
 } pi_GLworldenv;
+
+typedef struct PI_RENDERBACKEND {
+    pi_GLfuncs* glfuncs;
+    SDL_GLContext glcontext;
+    #if PI_GL_WIN32DEBUGTRAMPOLINE
+        GLenum gllasterror;
+        void* trampolineretaddress;
+        GLubyte* gldebugtrampolinecode;
+    #endif
+
+    pi_GLworldenv worldenv_state;
+    pi_GLworldenv* currworldenv;
+
+    GLuint wndwidth, wndheight;
+    GLuint fbotest;
+} pi_GLbackend;
+
 typedef struct PI_RENDERBACKEND_SCENE {
     GLuint ubo;
 } pi_GLscene;
@@ -84,6 +140,12 @@ typedef struct PI_RENDERBACKEND_INSTBUFFER {
 
     GLuint vbomesh;
 } pi_GLinstbuffer;
+
+#if PI_GL_WIN32DEBUGTRAMPOLINE
+    PI_EXTERN_C bool pi_gl_init_trampoline(pi_GLbackend* hbackend);
+    PI_EXTERN_C void pi_gl_close_trampoline(pi_GLbackend* hbackend);
+#endif
+
 
 /* Compile shader corresponding to the word environment effects passed in `effects`. And return a name given by `glCreateProgram`. */
 PI_EXTERN_C GLuint pi_gl_compile_shader(pi_GLbackend* hbackend, PI_WORLDENV_EFFECTS effects);
