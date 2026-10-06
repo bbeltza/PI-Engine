@@ -261,7 +261,7 @@ private:
 
     SDL_Window* m_sdlwnd = NULL;
 private:
-    static bool _s_event_watch(void* userdata, SDL_Event* event) noexcept;
+    static bool _s_event_hook(void* userdata, PI_EVENT* event) noexcept;
 };
 
 #endif

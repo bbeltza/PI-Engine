@@ -42,7 +42,6 @@ typedef struct pi_GLfuncs {
     PFNGLVERTEXATTRIBPOINTERPROC VertexAttribPointer;
     PFNGLVERTEXATTRIBDIVISORPROC VertexAttribDivisor;
 
-
     PFNGLCREATESHADERPROC CreateShader;
     PFNGLCREATEPROGRAMPROC CreateProgram;
     PFNGLDELETESHADERPROC DeleteShader;
@@ -95,6 +94,18 @@ typedef void* (APIENTRYP PI_PFN_ALLOCATOR)(size_t n);
 
 PI_EXTERN_C bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_ALLOCATOR alloc, pi_GLfuncs** pp_glfuncs);
 
+typedef struct GLmsaabuffer {
+    GLuint fbo;
+
+    union {
+        struct {
+            GLuint rbocolor;
+            GLuint rbodepth;
+        };
+        GLuint rbos[2];       
+    };
+} GLmsaabuffer;
+
 /**/
 
 typedef struct PI_RENDERBACKEND_WORLDENV {
@@ -122,7 +133,8 @@ typedef struct PI_RENDERBACKEND {
     pi_GLworldenv* currworldenv;
 
     GLuint wndwidth, wndheight;
-    GLuint fbotest;
+    GLmsaabuffer* msaabuffers;
+    GLint msaasamples;
 } pi_GLbackend;
 
 typedef struct PI_RENDERBACKEND_SCENE {

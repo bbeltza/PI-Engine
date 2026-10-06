@@ -10,6 +10,7 @@ PI_EXTERN_C PI_HWND pi_get_main_window(PI_HGAME hgame);
 
 /* Input API */
 
+    /* Keycodes, analogous to the SDL_ScanCode enum, they're the same. */
 typedef enum PI_KEYCODE
 {
     PI_KEYCODE_NULL = 0x00,
@@ -446,6 +447,13 @@ typedef enum PI_BUTTONMASK {
 
 typedef uint32_t PI_BUTTONSTATE;
 
+typedef enum PI_TOUCHSTATE {
+    PI_TOUCH_UP = 0,
+    PI_TOUCH_DOWN = 1,
+    PI_TOUCH_MOVING = 2,
+    PI_TOUCH_CANCELED = 3,
+} PI_TOUCHSTATE;
+
 /* Event API */
 
 typedef enum PI_EVENTTYPE
@@ -471,6 +479,8 @@ typedef enum PI_EVENTTYPE
     PI_EVENT_MOUSEBUTTON,
     PI_EVENT_MOUSEMOVE,
     PI_EVENT_MOUSEWHEEL,
+    
+    PI_EVENT_TOUCH,
 
     // More coming soon?
 } PI_EVENTTYPE;
@@ -520,6 +530,19 @@ typedef struct PI_WHEELEVENT {
     float y;
 } PI_WHEELEVENT;
 
+typedef struct PI_TOUCHEVENT {
+    PI_HWND hwindow;
+
+    PI_TOUCHSTATE state;
+    uint32_t touchindex;
+
+    float x;
+    float y;
+    float delta_x;
+    float delta_y;
+    float pressure;
+} PI_TOUCHEVENT;
+
 typedef struct PI_EVENT
 {
     PI_EVENTTYPE type;
@@ -530,12 +553,17 @@ typedef struct PI_EVENT
         PI_BUTTONEVENT button;
         PI_MOTIONEVENT motion;
         PI_WHEELEVENT wheel;
+        PI_TOUCHEVENT touch;
     };
 } PI_EVENT;
 
 /* The helper to convert SDL Events to PI_EVENT structures is provided, SDL_Event is not defined. It is included in <SDL3/SDL_Events.h> */
 union SDL_Event;
 bool pi_map_sdl_event(PI_EVENT* dst, const union SDL_Event* event); // Returns `false` if the mapped event's type is `PI_EVENT_UNKNOWN`, otherwise, `true` (That is, if the corresponding SDL Event is implemented and recognized by PI_EVENT)
+
+typedef bool (*PI_PFN_EVENTHOOK)(void* userdata, PI_EVENT* ev);
+PI_EXTERN_C bool pi_add_event_hook(PI_HGAME hgame, PI_PFN_EVENTHOOK pfn_hook, void* userdata);
+PI_EXTERN_C bool pi_remove_event_hook(PI_HGAME hgame, PI_PFN_EVENTHOOK pfn_hook, void* userdata);
 
 /* Runtime API */
 PI_EXTERN_C double pi_get_runtime_dt(PI_HGAME hgame);

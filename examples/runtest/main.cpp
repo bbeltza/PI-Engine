@@ -322,6 +322,15 @@ bool gaem_t::event(PI_EVENT* event)
             }
 
             break;
+        case PI_EVENT_TOUCH:
+            if (event->touch.state != PI_TOUCH_MOVING) {
+                break;
+            }
+
+            m_dirty.view = true;
+            m_viewangle.x += event->touch.delta_y * SENSIBILITY;
+            m_viewangle.y += event->touch.delta_x * SENSIBILITY;
+            break;
         case PI_EVENT_WINDOW_SIZE: {
             float ratio = event->window.data1 / static_cast<float>(event->window.data2);
             PI_MATRIX_4X4 p = pi_matrix_perspective(70_degf, ratio, 0.1f, 10.0f);

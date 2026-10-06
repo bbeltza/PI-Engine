@@ -46,6 +46,8 @@ typedef struct PI_INIT_SYSTEM {
 typedef struct PI_SYSTEM_RENDER PI_SYSTEM_RENDER;
 typedef struct PI_SYSTEM_PHYSICS PI_SYSTEM_PHYSICS;
 
+typedef struct PI_EVENT_HOOK PI_EVENT_HOOK;
+
 struct PI_ENGINEDATA {
     int running;
     PI_APPCALLBACKS appcallbacks;
@@ -73,6 +75,15 @@ struct PI_ENGINEDATA {
         };
         void* data[SYSTEM_COUNT];
     } subsystems;
+
+    PI_EVENT_HOOK* eventhooks;
+    unsigned eventhook_count;
+    unsigned eventhook_capacity;
+};
+
+struct PI_EVENT_HOOK {
+    PI_PFN_EVENTHOOK pfn_callback;
+    void* p_userdata;
 };
 
 /* Core engine implementation definitions */
@@ -105,6 +116,10 @@ struct PI_SCENE_IMPL {
         struct PI_SYSTEM_SCENE* data[SYSTEM_COUNT];
     } subsystems;
 };
+
+  /* Internal event hook API for subsystems to use */
+PI_EXTERN_C bool pi_add_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_hook);
+PI_EXTERN_C bool pi_remove_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_hook);
 
 #ifdef PI_CPP
     static_assert(sizeof(PI_ENGINEDATA::subsystems)/sizeof(void*) == SYSTEM_COUNT, "Subsystem count mismatch?");

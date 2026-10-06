@@ -4,7 +4,7 @@
 PI_EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_D3D10;
 PI_EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_GL;
 
-#undef PI_HAVE_D3D10
+//#undef PI_HAVE_D3D10
 
 static const PI_BACKEND_RENDER* backends[] = {
     #if PI_HAVE_D3D10
@@ -88,22 +88,16 @@ PI_SYSTEM_RENDER::PI_SYSTEM_RENDER(PI_ENGINEDATA* hengine, bool& succeed) noexce
     PI_ASSERT(m_objects.worldenvs.get_allocator().backend_size() > 0);
     PI_ASSERT(m_objects.meshes.get_allocator().backend_size() > 0);
 
-    SDL_AddEventWatch(_s_event_watch, this);
-    {
-        int w, h;
-        if (SDL_GetWindowSizeInPixels(m_sdlwnd, &w, &h)) {
-            m_configureinfo.w = w;
-            m_configureinfo.h = h;
-            this->backend.callbacks.pfn_configure(hbackend, &m_configureinfo);
-        }
-    }
+    PI_EVENT_HOOK hook = {
+        _s_event_hook,
+        this
+    };
+    pi_add_engine_event_hook(hengine, &hook);
     succeed = true;
 }
 
 PI_SYSTEM_RENDER::~PI_SYSTEM_RENDER() noexcept
 {
-    SDL_RemoveEventWatch(_s_event_watch, this);
-
     m_objects.meshes.clear();
     while (!m_objects.worldenvs.empty()) { // Detach any remaining world environments from the user, to be able to clean them up.
         bool r = m_objects.worldenvs.back().detach_from_user();
@@ -113,19 +107,14 @@ PI_SYSTEM_RENDER::~PI_SYSTEM_RENDER() noexcept
     backend.callbacks.pfn_close(get_backend());
 }
 
-bool PI_SYSTEM_RENDER::_s_event_watch(void* userdata, SDL_Event* event) noexcept
+bool PI_SYSTEM_RENDER::_s_event_hook(void* userdata, PI_EVENT* event) noexcept
 {
     auto renderer = static_cast<PI_SYSTEM_RENDER*>(userdata);
     PI_ASSERT(renderer != NULL);
 
-    SDL_Window* sdlwnd = SDL_GetWindowFromEvent(event);
-    if (renderer->m_sdlwnd != sdlwnd) {
-        return true;
-    }
-
     switch (event->type)
     {
-        case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        case PI_EVENT_WINDOW_SIZE:
             if (!event->window.data1 || !event->window.data2) {
                 break;
             }

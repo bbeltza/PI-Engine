@@ -6,7 +6,6 @@ PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEN
     /* Use OpenGL 3, minor version isn't included, should that be fine??? */
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     hbackend->glcontext = SDL_GL_CreateContext(pdesc->sdl_window);
@@ -32,22 +31,24 @@ PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEN
     gl.UseProgram(shader);
     gl.Enable(GL_FRAMEBUFFER_SRGB);
 
-    { // For testing only (multisample and framebuffer rendering), it is not ready to be used!!!
-        GLuint fbo;
-        gl.GenFramebuffers(1, &fbo);
-        gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
-
-        GLuint rbos[2];
-        gl.GenRenderbuffers(PI_ARRAYSIZE(rbos), rbos);
-        gl.BindRenderbuffer(GL_RENDERBUFFER, rbos[0]);
-        gl.RenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_RGBA, 800, 600);
-        gl.BindRenderbuffer(GL_RENDERBUFFER, rbos[1]);
-        gl.RenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT24, 800, 600);
-
-        gl.FramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rbos[0]);
-        gl.FramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbos[1]);
-
-        hbackend->fbotest = fbo;
+    gl.GetIntegerv(GL_MAX_SAMPLES, &hbackend->msaasamples);
+    if (!hbackend->msaasamples) {
+        hbackend->msaasamples = 0;
+        hbackend->msaabuffers = NULL;
+    }
+    else {
+        PI_ASSERT(hbackend->msaasamples > 0);
+        hbackend->msaasamples++;
+        hbackend->msaabuffers = calloc(hbackend->msaasamples, sizeof(GLmsaabuffer));
+        if (!hbackend->msaabuffers) {
+            /* Fail, or don't support mutisampling??? */
+            goto CLEANUPANDFAIL;
+            //hbackend->msaasamples = 0;
+        }
+        
+        for (GLint i = 0; i < hbackend->msaasamples; i++) {
+            gl.GenFramebuffers(1, &hbackend->msaabuffers[i].fbo);
+        }
     }
 
     SDL_GL_SetSwapInterval(1);
@@ -59,7 +60,7 @@ CLEANUPANDFAIL:
 
 PI_EXTERN_C void fn_render_gl_close(pi_GLbackend* hbackend)
 {
-#ifdef PI_GL_WIN32DEBUGTRAMPOLINE
+#if PI_GL_WIN32DEBUGTRAMPOLINE
     pi_gl_close_trampoline(hbackend);
 #endif
 
@@ -69,8 +70,16 @@ PI_EXTERN_C void fn_render_gl_close(pi_GLbackend* hbackend)
 
 bool fn_render_gl_configure(pi_GLbackend* hbackend, const PI_RENDER_CONFIGURE* info)
 {
-    gl.Viewport(0, 0, 800, 600);
+    gl.Viewport(0, 0, info->w, info->h);
     hbackend->wndwidth = info->w;
     hbackend->wndheight = info->h;
+
+    /* Delete all existing multisample buffers, they can get created back on begin_scene depending on the multisample setting of the world environment bound */
+    for (GLint i = 0; i < hbackend->msaasamples; i++) {
+        GLmsaabuffer* msaabuffer = &hbackend->msaabuffers[i];
+        gl.DeleteRenderbuffers(PI_ARRAYSIZE(msaabuffer->rbos), msaabuffer->rbos);
+        memset(msaabuffer->rbos, 0, sizeof(msaabuffer->rbos));
+    }
+    
     return true;
 }

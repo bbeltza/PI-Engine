@@ -69,7 +69,7 @@ static PI_KEYMODS GET_KEYMODS_FROMSDL(SDL_Keymod sdlmod) {
     return mods;
 }
 
-PI_BUTTONSTATE GET_MOUSESTATE_FROMSDL(SDL_MouseButtonFlags state) {
+static PI_BUTTONSTATE GET_MOUSESTATE_FROMSDL(SDL_MouseButtonFlags state) {
     #define MAP_STATE(statesdl, statepi) s |= (state & statesdl) ? statepi : 0
     PI_BUTTONSTATE s = 0;
     MAP_STATE(SDL_BUTTON_LMASK, PI_MSTATE_LEFT);
@@ -81,7 +81,7 @@ PI_BUTTONSTATE GET_MOUSESTATE_FROMSDL(SDL_MouseButtonFlags state) {
     return s;
 }
 
-PI_MOUSEBUTTON GET_BUTTON_FROMSDL(int button) {
+static PI_MOUSEBUTTON GET_BUTTON_FROMSDL(int button) {
     switch (button) {
         case SDL_BUTTON_LEFT:
             return PI_MOUSE_LEFT;
@@ -95,6 +95,22 @@ PI_MOUSEBUTTON GET_BUTTON_FROMSDL(int button) {
             return PI_MOUSE_X2;
         default:
             return PI_BUTTON_UNKNOWN;
+    }
+}
+
+static PI_TOUCHSTATE GET_TOUCHSTATE_FROMSDL(SDL_EventType evtype)
+{
+    switch (evtype) {
+        case SDL_EVENT_FINGER_DOWN:
+            return PI_TOUCH_DOWN;
+        case SDL_EVENT_FINGER_UP:
+            return PI_TOUCH_UP;
+        case SDL_EVENT_FINGER_MOTION:
+            return PI_TOUCH_MOVING;
+        case SDL_EVENT_FINGER_CANCELED:
+            return PI_TOUCH_CANCELED;
+        default:
+            return (PI_TOUCHSTATE)-1;
     }
 }
 
@@ -162,11 +178,90 @@ bool pi_map_sdl_event(PI_EVENT* event, const SDL_Event* sdlevent)
             event->wheel.x = sdlevent->wheel.mouse_x;
             event->wheel.x = sdlevent->wheel.mouse_x;
             break;
+        case SDL_EVENT_FINGER_DOWN:
+        case SDL_EVENT_FINGER_UP:
+        case SDL_EVENT_FINGER_MOTION:
+        case SDL_EVENT_FINGER_CANCELED:
+            event->type = PI_EVENT_TOUCH;
+            event->touch.hwindow = NULL;
+            event->touch.state = GET_TOUCHSTATE_FROMSDL(sdlevent->tfinger.type);
+            event->touch.touchindex = (uint32_t)sdlevent->tfinger.fingerID;
+            /* Note that SDL's finger events coordinates are normalized, they range from 0 to 1 (and from -1 to 1 for dx & dy). */
+            /* App touch events are given in screen coordinates, so the coordinates aren't normalized, but the conversion isn't being done here!!! */
+                /* Instead, it is being done in the core engine handler before calling any user callbacks. This can change when PI_HWNDs get implemented */
+            event->touch.x = sdlevent->tfinger.x;
+            event->touch.y = sdlevent->tfinger.y;
+            event->touch.delta_x = sdlevent->tfinger.dx;
+            event->touch.delta_y = sdlevent->tfinger.dy;
+            event->touch.pressure = sdlevent->tfinger.pressure;
+            break;
         default:
             event->type = PI_EVENT_UNKNOWN;
             return false;
     }
     return true;
+}
+
+bool pi_add_event_hook(PI_HGAME hgame, PI_PFN_EVENTHOOK pfn_hook, void* userdata) {
+    if (!hgame) {
+        return false;
+    }
+
+    PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
+    PI_EVENT_HOOK hook = {
+        pfn_hook,
+        userdata
+    };
+    return pi_add_engine_event_hook(engine, &hook);
+}
+bool pi_remove_event_hook(PI_HGAME hgame, PI_PFN_EVENTHOOK pfn_hook, void* userdata) {
+    if (!hgame) {
+        return false;
+    }
+
+    PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
+    PI_EVENT_HOOK hook = {
+        pfn_hook,
+        userdata
+    };
+    return pi_remove_engine_event_hook(engine, &hook);
+}
+
+bool pi_add_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_hook)
+{
+    for (unsigned i = 0; i < engine->eventhook_count; i++) {
+        PI_EVENT_HOOK* hook = &engine->eventhooks[i];
+        if (memcmp(hook, p_hook, sizeof(*p_hook)) == 0) {
+            return false;   
+        }
+        if (!hook->pfn_callback) {
+            *hook = *p_hook;
+            return true;
+        }
+    }
+
+    if (engine->eventhook_count >= engine->eventhook_capacity) {
+        unsigned newcap = 1 + (engine->eventhook_capacity*3)/2;
+        engine->eventhooks = realloc(engine->eventhooks, sizeof(PI_EVENT_HOOK) * newcap);
+        engine->eventhook_capacity = newcap;
+    }
+
+    engine->eventhooks[engine->eventhook_count++] = *p_hook;
+    return true;
+}
+
+bool pi_remove_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_hook)
+{
+    for (unsigned i = 0; engine->eventhook_count; i++) {
+        PI_EVENT_HOOK* hook = &engine->eventhooks[i];
+        if (memcmp(hook, p_hook, sizeof(*p_hook)) != 0) {
+            continue;
+        }
+        hook->pfn_callback = NULL;
+        hook->p_userdata = NULL;
+        return true;
+    }
+    return false;
 }
 
 /* Runtime API: */

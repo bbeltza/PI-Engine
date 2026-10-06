@@ -70,7 +70,8 @@ bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv*
     /* ... */
 /* Multisample state */
 
-    hworldenv->samples = pdesc->multisample->samples;
+    hworldenv->samples = pdesc->multisample->samples == 1 ? 0 :
+                    pdesc->multisample->samples;
 
     return true;
 }

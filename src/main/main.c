@@ -165,6 +165,12 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         }
     /**/
 
+    SDL_RemoveEventWatch(_event_watch, hgame);
+    free(engine->eventhooks);
+    engine->eventhooks = NULL;
+    engine->eventhook_count = 0;
+    engine->eventhook_capacity = 0;
+
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
     SDL_Quit();
     free(engine);
@@ -185,6 +191,24 @@ static bool _event_watch(void* userdata, SDL_Event* event) {
     PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
     PI_EVENT pievent;
     pi_map_sdl_event(&pievent, event);
+
+    if (pievent.type == PI_EVENT_TOUCH) {
+        int w = 1;
+        int h = 1;
+        SDL_GetWindowSizeInPixels(engine->sdlwnd, &w, &h);
+        pievent.touch.x *= w;
+        pievent.touch.y *= h;
+        pievent.touch.delta_x *= w;
+        pievent.touch.delta_y *= h;
+    }
+
+    for (unsigned i = 0; i < engine->eventhook_count; i++) {
+        const PI_EVENT_HOOK* hook = &engine->eventhooks[i];
+        if (!hook->pfn_callback)
+            continue;
+        hook->pfn_callback(hook->p_userdata, &pievent);
+    }
+
     return engine->appcallbacks.appevent(hgame, &pievent);
 }
 
