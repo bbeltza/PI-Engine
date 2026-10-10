@@ -571,6 +571,8 @@ PI_INLINE_C float pi_get_runtime_dtf(PI_HGAME hgame) { return (float)pi_get_runt
 
 /* Scene API */
 
+#define PI_HSCENE_DESTRUCTOR pi_destroy_scene
+
 PI_EXTERN_C PI_HSCENE pi_create_scene(PI_HGAME hgame);
 PI_EXTERN_C void pi_destroy_scene(PI_HSCENE hscene);
 

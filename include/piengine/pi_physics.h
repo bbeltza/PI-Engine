@@ -4,22 +4,66 @@
 #include <piengine/pi_common.h>
 #include <piengine/pi_scalars.h>
 
-typedef struct PI_RIGIDBODY_IMPL PI_HRIGIDBODY;
+typedef struct PI_RIGIDBODY_IMPL *PI_HRIGIDBODY;
 
-PI_EXTERN_C bool pi_init_physics_scene(PI_HSCENE hscene);
+#define PI_HRIGIDBODY_DESTRUCTOR pi_remove_rigid_body
 
+PI_EXTERN_C PI_HSCENE pi_init_physics_scene(PI_HSCENE hscene);
+
+typedef struct PI_PHYSICS_SCENE_PROPERTIES {
+    float gravity;
+    float forcedrag;
+} PI_PHYSICS_SCENE_PROPERTIES;
+
+PI_EXTERN_C PI_PHYSICS_SCENE_PROPERTIES* pi_get_physics_scene_properties(PI_HSCENE hscene);
 
 PI_EXTERN_C PI_HRIGIDBODY pi_add_rigid_body(PI_HSCENE hscene);
 PI_EXTERN_C void pi_remove_rigid_body(PI_HRIGIDBODY hrigidbody);
 
+typedef enum PI_COLLISION_TYPE {
+    PI_COLLISION_NONE = 0,
+    PI_COLLISION_AABB = 1
+} PI_COLLISION_TYPE;
+
+typedef struct PI_COLLISION_PROPERTIES
+{
+    PI_COLLISION_TYPE type;
+    union {
+        struct PI_COLLISIONPROP_AABB {
+            PI_VECTOR3X min;
+            PI_VECTOR3X max;
+        } aabb;
+        struct PI_COLLISIONPROP_OBB {
+            PI_VECTOR3X pts[2 /* 16, OBBs aren't implemented yet */];
+        } obb;
+        struct PI_COLLISIONPROP_SPHERE {
+            PI_VECTOR3X origin;
+            float radius;
+        } sphere;
+    };
+} PI_COLLISION_PROPERTIES;
+
+PI_EXTERN_C bool pi_set_collision(PI_HRIGIDBODY hrigidbody, PI_COLLISION_TYPE type);
+PI_EXTERN_C PI_COLLISION_PROPERTIES* pi_get_collision(PI_HRIGIDBODY hrigidbody);
+
+PI_EXTERN_C bool pi_attach_transform(PI_HRIGIDBODY hrigidbody, PI_MATRIX_4X4* ptransform, void* p_dirtyflag);
+
 typedef struct PI_RIGIDBODY_PROPERTIES
 {
-    bool isstatic;
-    PI_VECTOR4 position;
-    PI_VECTOR4 scale;
-    PI_VECTOR4 direction; // Axis rotation (`w` component is the angle )
+    float mass;
+    float _padding[3];
+    PI_VECTOR3X position;
+    PI_VECTOR3X velocity;
+    PI_VECTOR3X force;
 } PI_RIGIDBODY_PROPERTIES;
 
 PI_EXTERN_C PI_RIGIDBODY_PROPERTIES* pi_get_rigid_body_properties(PI_HRIGIDBODY hrigidbody);
+
+typedef void PI_MATRIX_4X3;
+
+struct PI_VERTEX;
+/* Helper to determine the instance of  */
+
+PI_EXTERN_C struct PI_COLLISIONPROP_AABB* pi_get_mesh_aabb(struct PI_COLLISIONPROP_AABB* dst, struct PI_VERTEX const* vertices, unsigned num_vertices, const PI_MATRIX_4X3* ptransform);
 
 #endif

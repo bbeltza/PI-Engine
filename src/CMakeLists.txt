@@ -23,8 +23,8 @@ macro(PI_BUILD_BACKEND name path)
 endmacro()
 
 BUILD_SYSTEM(render "render.cpp" "worldenv.cpp" "scene.cpp" "mesh.cpp" "instance.cpp" "update.cpp")
-BUILD_SYSTEM(physics "physics.c" "scene.c" "update.c")
-BUILD_SYSTEM(main "main.c" "core.c")
+BUILD_SYSTEM(physics "physics.c" "scene.c" "rigidbody.c" "collision.c" "update.c" "calc.c")
+BUILD_SYSTEM(core "alloc.c" "main.c" "core.c")
 
 #
 

@@ -11,6 +11,11 @@ const PI_BACKEND_RENDER _PI_BACKEND_RENDER_GL = {
 };
 
 static size_t s_gl_calcsize(void) {
+    // Some attributes must be set before creating the window
+    // We don't wanna pollute main.c too much either... So...
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 32);
+    SDL_GL_SetAttribute(SDL_GL_FLOATBUFFERS, 1);
+
     return sizeof(pi_GLbackend);
 }
 

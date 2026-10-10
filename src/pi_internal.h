@@ -54,6 +54,7 @@ struct PI_ENGINEDATA {
 
     SDL_Window* sdlwnd;
 
+    Uint64 dt_prev;
     Uint64 dt_value;
     double dt_double;
 

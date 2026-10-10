@@ -8,6 +8,10 @@ typedef struct PI_WORLDENV_IMPL *PI_HWORLDENV;
 typedef struct PI_MESH_IMPL *PI_HMESH;
 typedef struct PI_INSTANCE_IMPL *PI_HINSTANCE;
 
+#define PI_HMESH_DESTRUCTOR pi_destroy_mesh
+#define PI_HWORLDENV_DESTRUCTOR pi_release_worldenvironment
+#define PI_HINSTANCE_DESTRUCTOR pi_remove_scene_mesh
+
 typedef struct PI_VERTEX {
     PI_VECTOR3 pos;
     PI_VECTOR3 col;
@@ -151,7 +155,7 @@ PI_EXTERN_C void pi_destroy_mesh(PI_HMESH hmesh);
 PI_EXTERN_C PI_HWORLDENV pi_create_worldenvironment(PI_HGAME hgame, const PI_WORLDENV_DESC* pdesc);
 PI_EXTERN_C void pi_release_worldenvironment(PI_HWORLDENV hworldenv);
 
-PI_EXTERN_C bool pi_init_render_scene(PI_HSCENE hscene, PI_HWORLDENV hworldenv);
+PI_EXTERN_C PI_HSCENE pi_init_render_scene(PI_HSCENE hscene, PI_HWORLDENV hworldenv);
 // void pi_deinit_render_scene(PI_HSCENE hscene);
 
 PI_EXTERN_C bool pi_set_scene_clear_color(PI_HSCENE hscene, float r, float g, float b, float a);

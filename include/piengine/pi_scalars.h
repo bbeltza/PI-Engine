@@ -67,6 +67,9 @@ typedef union PI_VECTOR2 {
     float arr[2];
 } PI_VECTOR2;
 
+/* An actual VECTOR4, that is meant to be used as a 3 component vector, instead of a 4 component one, and is SIMD/SSE friendly. */
+typedef PI_VECTOR4 PI_VECTOR3X;
+
 /* Matrices */
 
 typedef union PI_MATRIX_4X4 {
@@ -76,6 +79,13 @@ typedef union PI_MATRIX_4X4 {
         float zx, zy, zz, zw;
         float wx, wy, wz, ww;
     };
+    struct {
+        PI_VECTOR4 x;
+        PI_VECTOR4 y;
+        PI_VECTOR4 z;
+        PI_VECTOR4 w;
+    } v;
+
     float arr[4*4];
     float m[4][4];
     #if PI_MATH_USE_SSE
@@ -92,6 +102,11 @@ typedef union PI_MATRIX_3X3 {
         float yx, yy, yz;
         float zx, zy, zz;
     };
+    struct {
+        PI_VECTOR3 x;
+        PI_VECTOR3 y;
+        PI_VECTOR3 z;
+    } v;
     float arr[3*3];
     float m[3][3];
 } PI_MATRIX_3X3;
@@ -101,11 +116,16 @@ typedef union PI_MATRIX_2X2 {
         float xx, xy;
         float yx, yy;
     };
+    struct {
+        PI_VECTOR2 x;
+        PI_VECTOR2 y;
+    } v;
     float arr[2*2];
     float m[2][2];
     #if PI_MATH_USE_SSE
         __m128 __xmm[1];
     #endif
 } PI_MATRIX_2X2;
+
 
 #endif

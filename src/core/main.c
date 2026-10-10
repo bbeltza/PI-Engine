@@ -4,6 +4,7 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_assert.h>
 #include <SDL3/SDL_timer.h>
+#include <SDL3/SDL_system.h>
 
 #define CHECK_CALLBACK(c) PI_ASSERT(c != NULL)
 
@@ -13,6 +14,15 @@
 
 static bool _event_watch(void* userdata, SDL_Event* event);
 static void _update_scenes(PI_ENGINEDATA* engine, PI_HGAME hgame);
+
+#define WIN32_WANT_MODAL_LOOP_HANDLING 1
+
+#if _WIN32 && WIN32_WANT_MODAL_LOOP_HANDLING
+    #define WIN32_USE_MODAL_LOOP_HANDLING
+    #define WIN32_LEAN_AND_MEAN
+    #include <Windows.h>
+    bool SDLCALL _win32_message_hook(void* userdata, MSG* msg);
+#endif
 
 PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
 {
@@ -67,14 +77,15 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
     gamesize = PI_ALIGN(gamesize, PI_DEFAULT_STRUCT_ALIGNMENT);
 
 // Initializing PI_ENGINEDATA
-    PI_ENGINEDATA* engine = calloc(1, engine_size + gamesize);
+    PI_ENGINEDATA* engine = PI_ALLOC(engine_size + gamesize, PI_ALLOC_ZERO);
     PI_ASSERT(engine != NULL);
 
-    SDL_WindowFlags windowflags = SDL_WINDOW_RESIZABLE;
+    SDL_WindowFlags windowflags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
     #if PI_HAVE_GL
         windowflags |= SDL_WINDOW_OPENGL;
     #endif
     
+    engine->dt_prev = dt_start;
     engine->running = true;
     engine->appcallbacks = *appinfo->callbacks;
     engine->sdlwnd = SDL_CreateWindow(appinfo->name, 800, 600, windowflags);
@@ -109,6 +120,8 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         goto QUIT_FAIL;
     }
 
+    SDL_ShowWindow(engine->sdlwnd);
+
     { // Process existing events from the queue added before AddEventWatch gets called.
         SDL_PumpEvents();
         int currevents = SDL_PeepEvents(NULL, 0, SDL_PEEKEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST);
@@ -125,27 +138,29 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         SDL_stack_free(evs);
     }
 
+#ifdef WIN32_USE_MODAL_LOOP_HANDLING
+    SDL_SetWindowsMessageHook(_win32_message_hook, hgame);
+#endif
+
     SDL_AddEventWatch(_event_watch, hgame);
-    int run = 1;
-    SDL_Event ev;
-    Uint64 rticks;
-    while(run) {
+    while(true) {
+        int done = 0;
+        SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
             switch (ev.type)
             {
                 case SDL_EVENT_QUIT:
-                    run = 0;
+                    done = 1;
                     break;
             }
+        } 
+        if (done) {
+            break;
         }
-        
-        rticks = SDL_GetTicksNS();
-        engine->dt_value = rticks - dt_start;
-        engine->dt_double = SDL_NS_TO_SECONDS((double)engine->dt_value);
-        dt_start = rticks;
-        
+
         _update_scenes(engine, hgame);
     }
+    engine->running = 0;
 
     /* Cleanup everything... */
         engine->appcallbacks.appclose(hgame);
@@ -156,7 +171,7 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
             cur = next;
         }
     
-        free(engine->bound_scenes);
+        PI_FREE(engine->bound_scenes);
 
         for (size_t i = 0; i < SYSTEM_COUNT; i++) {
             void* hsystem = engine->subsystems.data[i];
@@ -166,19 +181,20 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
     /**/
 
     SDL_RemoveEventWatch(_event_watch, hgame);
-    free(engine->eventhooks);
-    engine->eventhooks = NULL;
-    engine->eventhook_count = 0;
-    engine->eventhook_capacity = 0;
+    PI_FREE(engine->eventhooks);
+
+#ifndef NDEBUG
+    memset(engine, 0xCC, engine_size + gamesize);
+#endif
 
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
     SDL_Quit();
-    free(engine);
+    PI_FREE(engine);
     return 0;
 
 QUIT_FAIL:
     SDL_Quit();
-    free(engine);
+    PI_FREE(engine);
     return -1;
 }
 
@@ -216,6 +232,11 @@ static bool _event_watch(void* userdata, SDL_Event* event) {
 
 static void _update_scenes(PI_ENGINEDATA* engine, PI_HGAME hgame)
 {
+    Uint64 rticks = SDL_GetTicksNS();
+    engine->dt_value = rticks - engine->dt_prev;
+    engine->dt_double = SDL_NS_TO_SECONDS((double)engine->dt_value);
+    engine->dt_prev = rticks;
+
     unsigned scenecount = engine->bound_scene_last;
     unsigned tmpscenecounts[SYSTEM_COUNT];
     PI_HSYSTEMSCENE* tmpscenes = SDL_stack_alloc(PI_HSYSTEMSCENE, SYSTEM_COUNT * scenecount);
@@ -270,3 +291,30 @@ static void _update_scenes(PI_ENGINEDATA* engine, PI_HGAME hgame)
     END_UPDATE:
         SDL_stack_free(tmpscenes);
 }
+
+#ifdef WIN32_USE_MODAL_LOOP_HANDLING
+
+#define IDT_PI_WIN32_HOOK_ID(hgame) ((UINT_PTR)hgame)
+
+static bool SDLCALL _win32_message_hook(void* userdata, MSG* msg)
+{
+    PI_HGAME hgame = (PI_HGAME)userdata;
+    PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
+
+    if (msg->message == WM_ENTERSIZEMOVE || msg->message == WM_ENTERMENULOOP) {
+        //puts("GOT WM_ENTERSIZEMOVE!!");
+        SetTimer(msg->hwnd, IDT_PI_WIN32_HOOK_ID(hgame), 100, NULL);
+    }
+    else if (msg->message == WM_EXITSIZEMOVE || msg->message == WM_EXITMENULOOP) {
+        //puts("GOT WM_EXITSIZEMOVE!!");
+        KillTimer(msg->hwnd, IDT_PI_WIN32_HOOK_ID(hgame));
+    }
+    else if (msg->message == WM_TIMER) {
+        //printf("GOT WM_TIMER!!!... 0x%08llx 0x%08llx\n", msg->wParam, msg->lParam);
+        _update_scenes(engine, hgame);
+    }
+
+    return true;
+}
+
+#endif

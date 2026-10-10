@@ -5,6 +5,7 @@
 
 #include <cstdio>
 
+
 namespace appcallbacks
 {
     bool alloc_data(size_t* size);
@@ -127,66 +128,16 @@ const uint16_t QUAD_INDICES[] = {
     2, 3, 0
 };
 
-const uint16_t CUBE_INDICES[] = {
-    0, 1, 2,
-    2, 3, 0,
 
-    4, 5, 6,
-    6, 7, 4,
-
-    8, 9, 10,
-    10, 11, 8,
-
-    12, 13, 14,
-    14, 15, 12,
-
-    16, 17, 18,
-    18, 19, 16,
-
-    20, 21, 22,
-    22, 23, 20
-};
-
-const PI_VERTEX CUBE_VERTICES[] = {
-    { { -0.5f,  0.5f, -0.5f }, { 0.7f, 0.7f, 0.7f } },
-    { {  0.5f,  0.5f, -0.5f }, { 0.7f, 0.7f, 0.7f } },
-    { {  0.5f, -0.5f, -0.5f }, { 0.7f, 0.7f, 0.7f } },
-    { { -0.5f, -0.5f, -0.5f }, { 0.7f, 0.7f, 0.7f } },
-
-    { {  0.5f,  0.5f,  0.5f }, { 0.55f, 0.55f, 0.55f } },
-    { { -0.5f,  0.5f,  0.5f }, { 0.55f, 0.55f, 0.55f } },
-    { { -0.5f, -0.5f,  0.5f }, { 0.55f, 0.55f, 0.55f } },
-    { {  0.5f, -0.5f,  0.5f }, { 0.55f, 0.55f, 0.55f } },
-
-    { {  -0.5f,  0.5f,  0.5f }, { 0.8f, 0.8f, 0.8f } },
-    { {  -0.5f,  0.5f,  -0.5f }, { 0.8f, 0.8f, 0.8f } },
-    { {  -0.5f, -0.5f, -0.5f }, { 0.8f, 0.8f, 0.8f } },
-    { {  -0.5f, -0.5f,  0.5f }, { 0.8f, 0.8f, 0.8f } },
-
-    { {   0.5f,  0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f } },
-    { {   0.5f,  0.5f,  0.5f }, { 0.5f, 0.5f, 0.5f } },
-    { {   0.5f, -0.5f,  0.5f }, { 0.5f, 0.5f, 0.5f } },
-    { {   0.5f, -0.5f, -0.5f }, { 0.5f, 0.5f, 0.5f } },
-
-    { {  -0.5f,  0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } },
-    { {   0.5f,  0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f } },
-    { {   0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
-    { {  -0.5f,  0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f } },
-
-    { {  -0.5f, -0.5f, -0.5f }, { 0.4f, 0.4f, 0.4f } },
-    { {   0.5f, -0.5f, -0.5f }, { 0.4f, 0.4f, 0.4f } },
-    { {   0.5f, -0.5f,  0.5f }, { 0.4f, 0.4f, 0.4f } },
-    { {  -0.5f, -0.5f,  0.5f }, { 0.4f, 0.4f, 0.4f } },
-};
-
+#include <common/cube.h>
 
 gaem_t::gaem_t(bool& fail):
     m_hscene{ pi_create_scene(this) },
     m_hworldenv{ create_game_worldenv(this) },
     m_hcube{ pi_create_mesh_indexed(this,
-            PI_ARRAYSIZE(CUBE_VERTICES), CUBE_VERTICES,
-            PI_ARRAYSIZE(CUBE_INDICES), CUBE_INDICES,
-            PI_INDEX_U16
+            PI_ARRAYSIZE(common::CUBE_VERTICES), common::CUBE_VERTICES,
+            PI_ARRAYSIZE(common::CUBE_INDICES), common::CUBE_INDICES,
+           common::CUBE_INDEX_TYPE 
         )
     }
 {

@@ -42,11 +42,22 @@
     #define PI_MEMBER_DEFAULT(...)  = __VA_ARGS__
 #endif
 
+#define PI_PARAM_DEFAULT PI_MEMBER_DEFAULT
 
 /* Typedefs */
 
 typedef struct PI_GAME *PI_HGAME;
 typedef struct PI_SCENE_IMPL *PI_HSCENE;
+
+/* Memory management */
+
+    /* Flag(s) for PI_ALLOC */
+#define PI_ALLOC_ZERO 0x00000001
+
+PI_EXTERN_C void* PI_ALLOC(size_t n, uint32_t flags PI_PARAM_DEFAULT(0) );
+PI_EXTERN_C void PI_FREE(void* ptr);
+
+PI_EXTERN_C void* PI_REALLOC(void* ptr, size_t n, uint32_t flags);
 
 /* Some helper functions */
 

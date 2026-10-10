@@ -6,7 +6,6 @@ PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEN
     /* Use OpenGL 3, minor version isn't included, should that be fine??? */
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     hbackend->glcontext = SDL_GL_CreateContext(pdesc->sdl_window);
     if (!hbackend->glcontext) {

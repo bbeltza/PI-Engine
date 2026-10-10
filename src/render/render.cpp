@@ -71,7 +71,7 @@ PI_SYSTEM_RENDER::PI_SYSTEM_RENDER(PI_ENGINEDATA* hengine, bool& succeed) noexce
     auto backend = chosen_backend;
     PI_ASSERT(backend);
 
-    std::printf("Initializing backend \"%s\"...\n", backend->name);
+    //std::printf("Initializing backend \"%s\"...\n", backend->name);
     PI_HRENDERBACKEND hbackend = get_backend();
 
     if (!backend->pfn_entry(hbackend, &backenddesc, &this->backend)) {
@@ -171,7 +171,7 @@ PI_EXTERN_C void pi_release_worldenvironment(PI_HWORLDENV hworldenv) {
     hworldenv->detach_from_user();
 }
 
-PI_EXTERN_C bool pi_init_render_scene(PI_HSCENE hscene, PI_HWORLDENV hworldenv) {
+PI_EXTERN_C PI_HSCENE pi_init_render_scene(PI_HSCENE hscene, PI_HWORLDENV hworldenv) {
     if (!hscene) {
         return NULL;
     }
@@ -185,11 +185,11 @@ PI_EXTERN_C bool pi_init_render_scene(PI_HSCENE hscene, PI_HWORLDENV hworldenv) 
 
     auto renderer = hscene->engine->subsystems.render;
     if (!renderer->init_scene(hscene->subsystems.render, hworldenv)) {
-        return false;
+        return NULL;
     }
 
     hscene->initsubsystems.render = true;
-    return true;
+    return hscene;
 }
 
 static inline bool _HSCENECHECK(PI_HSCENE hscene) {

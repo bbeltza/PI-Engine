@@ -59,7 +59,7 @@ void bind_worldenv(pi_GLbackend* hbackend, pi_GLworldenv* hworldenv)
         if (!msaabuffer->rbocolor) {
             gl.GenRenderbuffers(1, &msaabuffer->rbocolor);
             gl.BindRenderbuffer(GL_RENDERBUFFER, msaabuffer->rbocolor);
-            gl.RenderbufferStorageMultisample(GL_RENDERBUFFER, hworldenv->samples, GL_RGBA, hbackend->wndwidth, hbackend->wndheight);
+            gl.RenderbufferStorageMultisample(GL_RENDERBUFFER, hworldenv->samples, GL_SRGB8, hbackend->wndwidth, hbackend->wndheight);
             gl.FramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, msaabuffer->rbocolor);
 
         }

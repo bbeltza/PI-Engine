@@ -242,7 +242,7 @@ bool pi_add_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_hook
 
     if (engine->eventhook_count >= engine->eventhook_capacity) {
         unsigned newcap = 1 + (engine->eventhook_capacity*3)/2;
-        engine->eventhooks = realloc(engine->eventhooks, sizeof(PI_EVENT_HOOK) * newcap);
+        engine->eventhooks = PI_REALLOC(engine->eventhooks, sizeof(PI_EVENT_HOOK) * newcap, 0);
         engine->eventhook_capacity = newcap;
     }
 
@@ -284,7 +284,7 @@ PI_HSCENE pi_create_scene(PI_HGAME hgame)
     }
 
     PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
-    struct PI_SCENE_IMPL* hscene = malloc(engine->sizeof_scene);
+    struct PI_SCENE_IMPL* hscene = PI_ALLOC(engine->sizeof_scene, 0);
     if (!hscene) {
         return NULL;
     }
@@ -339,8 +339,7 @@ void pi_destroy_scene(PI_HSCENE hscene)
         psystemdesc->callbacks.pfn_scene_deinit(hsystem, hscene->subsystems.data[i]);
     }
 
-    // TODO: Change allocator function calling names
-    free(hscene);
+    PI_FREE(hscene);
 }
 
 
@@ -361,19 +360,19 @@ PI_EXTERN_C bool pi_enable_scene(PI_HSCENE hscene, int _index)
     if (index >= hscene->engine->bound_scene_capacity)
     {
         unsigned newcap = 1 + index + hscene->engine->bound_scene_capacity;
-        PI_HSCENE* newsceneptr = malloc(sizeof(PI_HSCENE) * newcap);
+        PI_HSCENE* newsceneptr = PI_ALLOC(sizeof(PI_HSCENE) * newcap, 0);
         if (!newsceneptr) {
             return false;
         }
 
         memcpy(newsceneptr, hscene->engine->bound_scenes, sizeof(PI_HSCENE) * hscene->engine->bound_scene_last);
-        free(hscene->engine->bound_scenes);
+        PI_FREE(hscene->engine->bound_scenes);
         hscene->engine->bound_scenes = newsceneptr;
         hscene->engine->bound_scene_capacity = newcap;
     }
 
     if (index >= hscene->engine->bound_scene_last) {
-        memset(hscene->engine->bound_scenes + hscene->engine->bound_scene_last, 0x00, index);
+        memset(hscene->engine->bound_scenes + hscene->engine->bound_scene_last, 0x00, sizeof(PI_HSCENE) * index);
         hscene->engine->bound_scene_last = index + 1;
     }
     else if (hscene->engine->bound_scenes[index]) {

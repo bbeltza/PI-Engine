@@ -22,6 +22,7 @@ static const char SHADERS_VS[] =
         "vec4 pos = i_transform * v_pos;\n"
         "f_col = v_col * i_albedo;\n"
         "gl_Position = u_scene.viewproj * pos;\n"
+        "gl_Position.z = gl_Position.z*2.0 - gl_Position.w;\n"
     "}\n"
     ;
 static const char SHADERS_FS[] =
