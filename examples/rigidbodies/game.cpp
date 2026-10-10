@@ -29,10 +29,13 @@ PI_GAME::PI_GAME():
 
     pi_enable_scene(hscene, 0);
 
-    PI_RIGIDBODY_PROPERTIES* rbproperties = pi_get_rigid_body_properties(ground.hrigidbody);
-    rbproperties->mass = 0.0f;
+    PI_RIGIDBODY_PROPERTIES* ground_properties = pi_get_rigid_body_properties(ground.hrigidbody);
+    ground_properties->mass = 0.0f;
+    PI_RIGIDBODY_PROPERTIES* cube_properties = pi_get_rigid_body_properties(falling_cube.hrigidbody);
+    cube_properties->mass = 1.5f;
+    cube_properties->force.x = 1.0f;
     PI_PHYSICS_SCENE_PROPERTIES* pisceneproperties = pi_get_physics_scene_properties(hscene);
-    pisceneproperties->gravity = 1.0f;
+    pisceneproperties->gravity = 2.0f;
 }
 
 bool PI_GAME::app_event(PI_EVENT& event) noexcept
@@ -155,7 +158,7 @@ bool PI_GAME::_handle_key(const PI_KEYEVENT& event) noexcept
 {
     const auto key_vector = [](PI_PRESSMODE mode) -> float {
         float v = (mode == PI_PRESS_DOWN) ? 1.0f : (mode == PI_PRESS_UP) ? -1.0f : 0.0f;
-        return v * 0.01f;
+        return v * 1.3f;
     };
 
     PI_RIGIDBODY_PROPERTIES* rbproperties = pi_get_rigid_body_properties(falling_cube.hrigidbody);
@@ -183,7 +186,7 @@ bool PI_GAME::_handle_key(const PI_KEYEVENT& event) noexcept
         
         case PI_KEYCODE_SPACE:
             if (event.press == PI_PRESS_DOWN) {
-                rbproperties->force.y = 0.01f;
+                rbproperties->force.y = 2.0f;
             }
             break;
         default:

@@ -185,7 +185,7 @@ static PI_RIGIDBODY_DATA* append_rigidbody_data(PI_HSYSTEMSCENE hsysscene)
     rbdata->rbproperties.mass = 0.0f;
     rbdata->rbproperties.position = PI_INIT_STRUCT(PI_VECTOR3X){ 0.0f, 0.0f, 0.0f };
     rbdata->rbproperties.velocity = PI_INIT_STRUCT(PI_VECTOR3X){ 0.0f, 0.0f, 0.0f };
-    rbdata->rbproperties.force = PI_INIT_STRUCT(PI_VECTOR3X){ 0.01f, 0.0f, 0.0f };
+    rbdata->rbproperties.force = PI_INIT_STRUCT(PI_VECTOR3X){ 0.0f, 0.0f, 0.0f };
     rbdata->clproperties.type = PI_COLLISION_NONE;
     rbdata->p_transform = NULL;
     rbdata->p_dirtyflag = NULL;

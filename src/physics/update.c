@@ -2,23 +2,23 @@
 
 #include <piengine/pi_math.h>
 
-static void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hsysscene);
+static void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hsysscene, float dt);
 static void update_freelists(PI_HSYSTEMSCENE hscene);
 
 PI_EXTERN_C void fn_physics_pre_update(void* hsystem, PI_HSYSTEMSCENE hsysscenes[], unsigned scenecount)
 {
     PI_SYSTEM_PHYSICS* system = (PI_SYSTEM_PHYSICS*)hsystem;
+    float dt = (float)*system->p_dt;
     for (unsigned i = 0; i < scenecount; i++) {
         PI_HSYSTEMSCENE hsysscene = hsysscenes[i];
-        update_scene(system, hsysscene);
+        update_scene(system, hsysscene, dt);
     }
 }
 
-void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene)
+void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene, float dt)
 {
     update_freelists(hscene);
 
-    float dt = (float)*hsystem->p_dt;
     PI_HRIGIDBODY curhrigidbody = hscene->rbhead;
     while (curhrigidbody) {
         PI_RIGIDBODY_DATA* rbdata = curhrigidbody->p_data;
@@ -40,12 +40,12 @@ void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene)
         if (hscene->properties.gravity || hscene->properties.forcedrag) {
             float fac = dt * rbdata->rbproperties.mass;
             PI_VECTOR3X fdt = {
-                -rbdata->rbproperties.force.x * hscene->properties.forcedrag,
-                -0.01f * hscene->properties.gravity,
-                -rbdata->rbproperties.force.z * hscene->properties.forcedrag
+                rbdata->rbproperties.force.x * hscene->properties.forcedrag,
+                hscene->properties.gravity,
+                rbdata->rbproperties.force.z * hscene->properties.forcedrag
             };
             fdt = pi_mul_4s(fdt, fac);
-            rbdata->rbproperties.force = pi_add_4(
+            rbdata->rbproperties.force = pi_sub_4(
                         rbdata->rbproperties.force,
                         fdt
                     );
@@ -53,7 +53,7 @@ void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene)
             pdelta = pi_add_4(pdelta, rbdata->rbproperties.force);
         }
 
-
+        pdelta = pi_mul_4s(pdelta, dt);
         rbdata->rbproperties.position = pi_add_4(
                 rbdata->rbproperties.position,
                 pdelta

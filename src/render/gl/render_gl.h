@@ -89,8 +89,8 @@ typedef struct pi_GLfuncs {
     PFNGLGETINTEGERVPROC GetIntegerv;
 } pi_GLfuncs;
 
-typedef void* (APIENTRYP PI_PFN_GLGETPROCADDRESS)(const char* procname);
-typedef void* (APIENTRYP PI_PFN_ALLOCATOR)(size_t n);
+typedef void* (*PI_PFN_GLGETPROCADDRESS)(const char* procname);
+typedef void* (*PI_PFN_ALLOCATOR)(size_t n);
 
 PI_EXTERN_C bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_ALLOCATOR alloc, pi_GLfuncs** pp_glfuncs);
 

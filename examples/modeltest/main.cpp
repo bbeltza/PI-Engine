@@ -45,9 +45,7 @@ PI_HMESH create_guitar_mesh(PI_HGAME hgame) noexcept
     tinyobj::ObjReaderConfig readerconfig;
     readerconfig.triangulate = true;
     tinyobj::ObjReader reader;
-    if (!reader.ParseFromString(
-            #include "guitarmodel.obj"
-                , "", readerconfig
+    if (!reader.ParseFromFile("guitarmodel.obj", readerconfig
                 ) ) {
         if (!reader.Error().empty()) {
             std::fprintf(stderr, "LOADING ERROR: %s", reader.Error().c_str());
@@ -173,7 +171,13 @@ PI_GAME::PI_GAME() noexcept:
     htriangle{ create_guitar_mesh(this) },
     htriangle_instance{ /* .. */ }
 {
+    if (!htriangle) {
+        hscene.release();
+        return;
+    }
+
     if (!pi_init_render_scene(hscene, hworldenv)) {
+        hscene.release();
         return;
     }
 
