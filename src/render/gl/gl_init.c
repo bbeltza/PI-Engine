@@ -16,7 +16,7 @@ PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEN
         goto CLEANUPANDFAIL;
     }
     
-#if PI_GL_WIN32DEBUGTRAMPOLINE
+#if USE_GL_DBGTRAMPOLINE
     if (!pi_gl_init_trampoline(hbackend)) {
         goto CLEANUPANDFAIL;
     }
@@ -59,7 +59,7 @@ CLEANUPANDFAIL:
 
 PI_EXTERN_C void fn_render_gl_close(pi_GLbackend* hbackend)
 {
-#if PI_GL_WIN32DEBUGTRAMPOLINE
+#if USE_GL_DBGTRAMPOLINE
     pi_gl_close_trampoline(hbackend);
 #endif
 

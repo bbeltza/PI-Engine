@@ -201,18 +201,18 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_generic(PI_MATRIX_4X4* dst, const PI_MATR
 
 PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
 {
-    register __m128 lxrow = _mm_load_ps(&l->xx);
-    register __m128 lyrow = _mm_load_ps(&l->yx);
-    register __m128 lzrow = _mm_load_ps(&l->zx);
-    register __m128 lwrow = _mm_load_ps(&l->wx);
-    register __m128 rxrow = _mm_load_ps(&r->xx);
-    register __m128 ryrow = _mm_load_ps(&r->yx);
-    register __m128 rzrow = _mm_load_ps(&r->zx);
-    register __m128 rwrow = _mm_load_ps(&r->wx);
+    PI_REGISTER __m128 lxrow = _mm_load_ps(&l->xx);
+    PI_REGISTER __m128 lyrow = _mm_load_ps(&l->yx);
+    PI_REGISTER __m128 lzrow = _mm_load_ps(&l->zx);
+    PI_REGISTER __m128 lwrow = _mm_load_ps(&l->wx);
+    PI_REGISTER __m128 rxrow = _mm_load_ps(&r->xx);
+    PI_REGISTER __m128 ryrow = _mm_load_ps(&r->yx);
+    PI_REGISTER __m128 rzrow = _mm_load_ps(&r->zx);
+    PI_REGISTER __m128 rwrow = _mm_load_ps(&r->wx);
 
-    register __m128 shuf;
-    register __m128 vres1;
-    register __m128 vres0;
+    PI_REGISTER __m128 shuf;
+    PI_REGISTER __m128 vres1;
+    PI_REGISTER __m128 vres0;
     shuf = _mm_shuffle_ps(rxrow, rxrow, _MM_SHUF_XCOL);
     vres0 = _mm_mul_ps(lxrow, shuf); 
     
@@ -293,19 +293,19 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4
 
 PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_avx(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
 {
-    register __m256 lxyrow = _mm256_load_ps(&l->xx);
-    register __m256 lzwrow = _mm256_load_ps(&l->zx);
-    register __m256 rxyrow = _mm256_load_ps(&r->xx);
-    register __m256 rzwrow = _mm256_load_ps(&r->zx);
+    PI_REGISTER __m256 lxyrow = _mm256_load_ps(&l->xx);
+    PI_REGISTER __m256 lzwrow = _mm256_load_ps(&l->zx);
+    PI_REGISTER __m256 rxyrow = _mm256_load_ps(&r->xx);
+    PI_REGISTER __m256 rzwrow = _mm256_load_ps(&r->zx);
 
-    register __m256 duprow;
-    register __m256 shuf1;
-    register __m256 shuf2;
+    PI_REGISTER __m256 duprow;
+    PI_REGISTER __m256 shuf1;
+    PI_REGISTER __m256 shuf2;
    
-    register __m256 res1;
-    register __m256 res2;
+    PI_REGISTER __m256 res1;
+    PI_REGISTER __m256 res2;
 
-    register __m256 mult;
+    PI_REGISTER __m256 mult;
 
     duprow = _mm256_permute2f128_ps(lxyrow, lzwrow, _MM_PERMUTE_LO1);
     shuf1 = _mm256_permute_ps(rxyrow, _MM_SHUF_XCOL);
@@ -370,12 +370,12 @@ PI_CONSTEXPR_F PI_VECTOR4 _pi_mulv_4x4_generic(PI_VECTOR4 v, const PI_MATRIX_4X4
 
 PI_INLINE_C PI_VECTOR4 _pi_mulv_4x4_sse(PI_VECTOR4 v, const PI_MATRIX_4X4* m)
 {
-    register __m128 colx;
-    register __m128 coly;
-    register __m128 colz;
-    register __m128 colw;
-    register __m128 shuf;
-    register __m128 res;
+    PI_REGISTER __m128 colx;
+    PI_REGISTER __m128 coly;
+    PI_REGISTER __m128 colz;
+    PI_REGISTER __m128 colw;
+    PI_REGISTER __m128 shuf;
+    PI_REGISTER __m128 res;
     
     colx = _mm_load_ps(&m->xx);
     coly = _mm_load_ps(&m->yx);
@@ -434,7 +434,7 @@ PI_INLINE_C PI_VECTOR4* _pi_vector_negative_sse(PI_VECTOR4* dst, PI_VECTOR4 v)
         *  This one is just 4-5 instruction, it clears one of the vector register, and then it subtracts that register by the source vector, giving it's negative value.
         *  It doesn't involve any memory operations other than storing the result at the end (to `dst`) */
 
-    register __m128 res = _mm_xor_ps(v.__xmm, v.__xmm);
+    PI_REGISTER __m128 res = _mm_xor_ps(v.__xmm, v.__xmm);
     res = _mm_sub_ps(res, v.__xmm);
 
     _mm_store_ps(&dst->x, res);
@@ -510,8 +510,8 @@ PI_INLINE_C PI_VECTOR4* _pi_vector_normalize_generic(PI_VECTOR4* dst, PI_VECTOR4
 
 PI_INLINE_C PI_VECTOR4* _pi_vector_normalize_sse(PI_VECTOR4* dst, PI_VECTOR4 v)
 {
-    register __m128 msq = _mm_mul_ps(v.__xmm, v.__xmm);
-    register __m128 shu = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(2, 0, 0, 1));
+    PI_REGISTER __m128 msq = _mm_mul_ps(v.__xmm, v.__xmm);
+    PI_REGISTER __m128 shu = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(2, 0, 0, 1));
     msq = _mm_add_ps(msq, shu);
     shu = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(0, 0, 0, 3));
     msq = _mm_add_ss(msq, shu);
@@ -541,9 +541,9 @@ PI_INLINE_C PI_VECTOR4* pi_vector_normalize4(PI_VECTOR4* dst, PI_VECTOR4 v)
 
 PI_INLINE_C PI_VECTOR4* _pi_vector_cross_sse(PI_VECTOR4* dst, PI_VECTOR4 v1, PI_VECTOR4 v2)
 {
-    register __m128 res;
-    register __m128 lmm = _mm_shuffle_ps(v1.__xmm, v1.__xmm, _MM_SHUF_CROSS1);
-    register __m128 rmm = _mm_shuffle_ps(v2.__xmm, v2.__xmm, _MM_SHUF_CROSS2);
+    PI_REGISTER __m128 res;
+    PI_REGISTER __m128 lmm = _mm_shuffle_ps(v1.__xmm, v1.__xmm, _MM_SHUF_CROSS1);
+    PI_REGISTER __m128 rmm = _mm_shuffle_ps(v2.__xmm, v2.__xmm, _MM_SHUF_CROSS2);
     res = _mm_mul_ps(lmm, rmm);
     lmm = _mm_shuffle_ps(v1.__xmm, v1.__xmm, _MM_SHUF_CROSS2);
     rmm = _mm_shuffle_ps(v2.__xmm, v2.__xmm, _MM_SHUF_CROSS1);

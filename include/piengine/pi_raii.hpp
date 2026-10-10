@@ -7,6 +7,8 @@
     #error "Can only include \"pi_raii.hpp\" with a C++ compiler!"
 #endif
 
+#include <type_traits>
+
 // RAII class for all handle types
 
 template<typename T, void (D)(T handle)>

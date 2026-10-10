@@ -34,7 +34,7 @@ void _physics_update_collision(PI_HSYSTEMSCENE hscene, PI_HRIGIDBODY rigidbody)
 
 /**/
 
-#if PI_MATH_USE_SSE // This will use SSE 4.1
+#if PI_MATH_USE_SSE4_1 // This will use SSE 4.1
 static bool is_negative3x(PI_VECTOR3X v) {
     register __m128i xmask = _mm_set_epi32(0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
     register __m128 zeromm = _mm_setzero_ps();

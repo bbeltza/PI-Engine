@@ -25,21 +25,26 @@ typedef enum PI_COLLISION_TYPE {
     PI_COLLISION_AABB = 1
 } PI_COLLISION_TYPE;
 
+
+typedef struct PI_COLLISIONPROP_AABB {
+    PI_VECTOR3X min;
+    PI_VECTOR3X max;
+} PI_COLLISIONPROP_AABB;
+typedef struct PI_COLLISIONPROP_OBB {
+    PI_VECTOR3X pts[2 /* 16, OBBs aren't implemented yet */];
+} PI_COLLISIONPROP_OBB;
+typedef struct PI_COLLISIONPROP_SPHERE {
+    PI_VECTOR3X origin;
+    float radius;
+} PI_COLLISIONPROP_SPHERE;
+
 typedef struct PI_COLLISION_PROPERTIES
 {
     PI_COLLISION_TYPE type;
     union {
-        struct PI_COLLISIONPROP_AABB {
-            PI_VECTOR3X min;
-            PI_VECTOR3X max;
-        } aabb;
-        struct PI_COLLISIONPROP_OBB {
-            PI_VECTOR3X pts[2 /* 16, OBBs aren't implemented yet */];
-        } obb;
-        struct PI_COLLISIONPROP_SPHERE {
-            PI_VECTOR3X origin;
-            float radius;
-        } sphere;
+        PI_COLLISIONPROP_AABB aabb;
+        PI_COLLISIONPROP_OBB obb;
+        PI_COLLISIONPROP_SPHERE sphere;
     };
 } PI_COLLISION_PROPERTIES;
 

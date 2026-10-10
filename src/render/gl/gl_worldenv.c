@@ -24,7 +24,7 @@ bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv*
             hworldenv->cullface = 0;
             break;
         default:
-            __assume(0);
+            PI_ASSUME(0);
     }
     if (pdesc->rasterizer->cullflags & PI_CULL_FRONT_COUNTERCLOCKWISE)
         hworldenv->frontface = GL_CCW;
@@ -64,6 +64,7 @@ bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv*
         };
 
         hworldenv->depthmask = pdesc->depth->depthwrite;
+        hworldenv->depthenable = GL_TRUE;
     }
 
 /* ~Stencil state~ */

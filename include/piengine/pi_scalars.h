@@ -9,6 +9,9 @@
     #if defined(__AVX__)
         #define PI_MATH_USE_AVX 1
     #endif
+   #if defined(__SSE4_1__) || (_M_IX86 >= 2)
+        #define PI_MATH_USE_SSE4_1 1
+    #endif
     #if defined(__SSE__) || defined(_M_X64) || (defined (_M_IX86) && defined(_M_IX86_FP) && (_M_IX86_FP >= 1))
         #define PI_MATH_USE_SSE 1
     #endif

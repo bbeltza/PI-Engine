@@ -16,8 +16,19 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#if !defined(NDEBUG) && defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64))
-    #define PI_GL_WIN32DEBUGTRAMPOLINE 1
+#ifndef __has_include
+    #define __has_include(n) 0
+#endif
+
+#if !defined(NDEBUG)
+    #define WANT_GL_DBGTRAMPOLINE 1
+#else
+    //#define WANT_GL_DBGTRAMPOLINE 0
+#endif
+
+#if (_WIN32 || (defined(__unix__) && __has_include(<sys/mman.h>))) && \
+    (defined(__x86_64__) || defined(_M_X64))
+    #define USE_GL_DBGTRAMPOLINE 1
 #endif
 
 #define PI_GLGETPROCADDRESS pfn_GetProcAddress /* Used by `pi_gl_render_loadfuncs`, can be overridden with something else */
@@ -123,7 +134,7 @@ typedef struct PI_RENDERBACKEND_WORLDENV {
 typedef struct PI_RENDERBACKEND {
     pi_GLfuncs* glfuncs;
     SDL_GLContext glcontext;
-    #if PI_GL_WIN32DEBUGTRAMPOLINE
+    #if USE_GL_DBGTRAMPOLINE
         GLenum gllasterror;
         void* trampolineretaddress;
         GLubyte* gldebugtrampolinecode;
@@ -153,7 +164,7 @@ typedef struct PI_RENDERBACKEND_INSTBUFFER {
     GLuint vbomesh;
 } pi_GLinstbuffer;
 
-#if PI_GL_WIN32DEBUGTRAMPOLINE
+#if USE_GL_DBGTRAMPOLINE
     PI_EXTERN_C bool pi_gl_init_trampoline(pi_GLbackend* hbackend);
     PI_EXTERN_C void pi_gl_close_trampoline(pi_GLbackend* hbackend);
 #endif
@@ -196,6 +207,6 @@ PI_EXTERN_C void fn_render_gl_begin_scene(pi_GLbackend* hbackend, pi_GLscene* hs
 PI_EXTERN_C void fn_render_gl_end_scene(pi_GLbackend* hbackend);
 PI_EXTERN_C void fn_render_gl_submit_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh, pi_GLinstbuffer* hinstbuffer, unsigned instance_count);
 
-EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_GL;
+PI_EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_GL;
 
 #endif

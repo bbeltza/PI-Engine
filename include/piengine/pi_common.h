@@ -16,19 +16,31 @@
     #define PI_ALIGN_AS(n)
 #endif
 
+#if PI_CPP >= 202302L
+    #define PI_ASSUME(c) [[assume(c)]]
+#elif _MSC_VER
+    #define PI_ASSUME(c) __assume(c)
+#elif __GNUC__
+    #define PI_ASSUME(c) __attribute__((assume(c)))
+#else
+    #define PI_ASSUME(c)
+#endif
+
 #ifndef PI_CPP
     #include <stdint.h>
     #include <stdarg.h>
     #include <stdbool.h>
+    #include <stddef.h>
     #include <assert.h>
 
     #define PI_EXTERN_C extern
-    #define PI_CONSTEXPR_F PI_INLINE_C /* PI_INLINE_C gonna be defined after */
+    #define PI_CONSTEXPR_F PI_INLINE_C
     #define PI_CONSTEXPR_V static const 
     #define PI_MEMBER_DEFAULT(...)
 #else
     #include <cstdint>
     #include <cstdarg>
+    #include <cstddef>
     #include <new> /* <new> is included by default to allow the use for placement new on custom game classes without having to include this header */
     #include <cassert>
 
@@ -41,6 +53,14 @@
 
     #define PI_MEMBER_DEFAULT(...)  = __VA_ARGS__
 #endif
+
+#if PI_CPP >= 201703L
+    #define PI_REGISTER
+#else
+    #define PI_REGISTER register
+#endif
+
+
 
 #define PI_PARAM_DEFAULT PI_MEMBER_DEFAULT
 

@@ -2,6 +2,8 @@
 
 #if !defined(_WIN32) 
 
+#include <stdlib.h>
+
 void* PI_ALLOC(size_t n, uint32_t flags)
 {
     return (flags & PI_ALLOC_ZERO) ? calloc(1, n)

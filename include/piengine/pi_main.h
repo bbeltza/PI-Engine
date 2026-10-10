@@ -36,7 +36,7 @@ typedef struct PI_APPINFO
 
 PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args);
 
-PI_INLINE_C int pi_run_ex(const PI_APPINFO* appinfo, ...) {
+static inline int pi_run_ex(const PI_APPINFO* appinfo, ...) {
     int res;
     va_list va;
     va_start(va, appinfo);

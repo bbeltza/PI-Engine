@@ -85,11 +85,12 @@ PI_HMESH create_guitar_mesh(PI_HGAME hgame) noexcept
 
                     unsigned nmsindex = 3*index.normal_index;
 
-                    static PI_VECTOR4 LIGHT_DIR = *pi_vector_normalize4(&LIGHT_DIR, {
-                        -0.3f,
-                        0.7f,
-                        0.8f
-                    } );
+                    static PI_VECTOR4 LIGHT_DIR = *pi_vector_normalize4(&LIGHT_DIR,
+                        PI_VECTOR3X{
+                            -0.3f,
+                            0.7f,
+                            0.8f
+                        } );
 
                     PI_VECTOR3 normal = {
                         attrib.normals.at(nmsindex+0),

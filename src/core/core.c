@@ -268,7 +268,7 @@ bool pi_remove_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_h
 
 double pi_get_runtime_dt(PI_HGAME hgame) {
     if (!hgame) { // Returns NAN if invalid parameters are passed.
-        return NAN;
+        return 0.0;
     }
 
     PI_ENGINEDATA* engine = PI_ENGINE_FROM_HGAME(hgame);
