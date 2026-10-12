@@ -107,7 +107,7 @@ PI_HWORLDENV create_game_worldenv(PI_HGAME hgame) noexcept
     multisample.samples = 4;
     multisample.best_quality = false;
 
-    PI::WORLDENV_DESC desc{PI_WORLDEFFECT_NONE, rasterizer, depth, multisample};
+    PI::WORLDENV_DESC desc{PI_WORLDEFFECT_LIGHTING | PI_WORLDEFFECT_SPECULAR, rasterizer, depth, multisample};
     return pi_create_worldenvironment(hgame, &desc);
 }
 
@@ -350,11 +350,19 @@ bool gaem_t::update()
 
         pi_set_scene_view(m_hscene, &view);
 
+        PI_LIGHT_PROPERTIES lightproperties;
+        lightproperties.ambient_color = PI_VECTOR3X{ 0.045f, 0.04f, 0.05f, 1.0f };
+        lightproperties.view_position = { eye.x, eye.y, eye.z };
+        lightproperties.specular_color = PI_VECTOR4{ 1.0f, 1.0f, 1.0f, 1.0f };
+        pi_set_light_properties(m_hscene, &lightproperties);
+
         PI_LIGHT look_light;
-        look_light.point = {
-               eye, 
-                PI_VECTOR4{ 0.7f, 0.45f, 1.0f, 1.0f }
-            };
+        look_light.point = PI_POINT_LIGHT{
+                { 1.898146f, 1.139489f, -2.710833f } /* Coordinates taken from the camera position */,
+                PI_VECTOR4{ 0.7f, 0.45f, 1.0f, 1.0f },
+                7.0f,
+            5.0f
+        };
         pi_update_light(m_hcamlight, &look_light);
     }
     return true;

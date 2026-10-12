@@ -1,5 +1,6 @@
 #include "render_gl.h"
 
+#include <piengine/pi_math.h>
 
 PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEND_RENDER_DESC* pdesc)
 {
@@ -22,14 +23,47 @@ PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEN
     }
 #endif
 
-    GLuint shader = pi_gl_compile_shader(hbackend, PI_WORLDEFFECT_NONE);
-    if (shader == 0) {
-        goto CLEANUPANDFAIL;
+    {
+        GLint ubosize, uboalign;
+        gl.GetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &ubosize);
+        gl.GetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uboalign);
+
+        hbackend->ubofsoffset = PI_ALIGN(sizeof(PI_SCENEENV), uboalign);
+        hbackend->maxuboptlights = PI_MIN(ubosize/sizeof(PI_POINT_LIGHT), 1024); 
+        hbackend->maxubodirlights = PI_MIN(ubosize/sizeof(PI_DIRECTIONAL_LIGHT), 1024); 
+
+        printf("ubosize: %d ; uboalign: %d\n", ubosize, uboalign);
     }
 
-    gl.UseProgram(shader);
-    gl.Enable(GL_FRAMEBUFFER_SRGB);
+    const char* const _defines[NUM_SHADERS] = {
+        "",
+        "#define WORLDEFFECT_LIGHTING\n"
+            "#define MAX_DIRECTIONAL_LIGHTS %u\n"
+            "#define MAX_POINT_LIGHTS %u\n",
+        "%s\n"
+            "#define WORLDEFFECT_SPECULAR\n"
+    };
+   
+    char defines1buf[255];
+    char defines2buf[255];
 
+    const char* defines[NUM_SHADERS] = {
+        _defines[0],
+        defines1buf,
+        defines2buf
+    };
+    snprintf(defines1buf, PI_ARRAYSIZE(defines1buf), _defines[1], hbackend->maxubodirlights, hbackend->maxuboptlights);
+    snprintf(defines2buf, PI_ARRAYSIZE(defines2buf), _defines[2], defines1buf);
+
+    for (unsigned i = 0; i < NUM_SHADERS; i++) {
+        GLuint shader = pi_gl_compile_shader(hbackend, defines[i]);
+        if (shader == 0) {
+            goto CLEANUPANDFAIL;
+        }
+        hbackend->shaders[i] = shader;
+    }
+
+    gl.Enable(GL_FRAMEBUFFER_SRGB);
     gl.GetIntegerv(GL_MAX_SAMPLES, &hbackend->msaasamples);
     if (!hbackend->msaasamples) {
         hbackend->msaasamples = 0;

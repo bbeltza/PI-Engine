@@ -4,9 +4,27 @@
 
 #include <cstdio>
 
+struct SHADER_BYTECODE {
+    const void* p_data;
+    size_t datasize;
+
+    template <typename T, size_t n>
+    constexpr SHADER_BYTECODE(const T (&data)[n]):
+        p_data(data),
+        datasize(sizeof(data))
+    {}
+};
+
 namespace PI_D3D10SHADERS {
     #include "shaders.h"
+    constexpr SHADER_BYTECODE pshaders[NUM_SHADERS][2] = {
+        { vs_basic, ps_basic },
+        { vs_light, ps_light },
+        { vs_lightspecular, ps_lightspecular }
+    };
 }
+
+
 
 //
 
@@ -19,7 +37,7 @@ PI_DLL& pi_D3D10Backend::_s_get_dll() noexcept {
 
 constexpr UINT DEVICE_FLAGS = D3D10_CREATE_DEVICE_SINGLETHREADED | D3D10_CREATE_DEVICE_DEBUG;
 constexpr UINT DEVICE_BACKBUFFERS = 1; // 1 for now should be fine right??
-constexpr DXGI_FORMAT DEVICE_FORMAT = DXGI_FORMAT_R16G16B16A16_FLOAT;
+constexpr DXGI_FORMAT DEVICE_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
 size_t pi_D3D10Backend::s_calcsize() noexcept
 {
@@ -134,8 +152,13 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
     }
 
     using namespace PI_D3D10SHADERS;
-    COMCHECKCALL(m_dxdevice->CreateVertexShader(vs_basic, sizeof(vs_basic), &m_dx_vs_basic));
-    COMCHECKCALL(m_dxdevice->CreatePixelShader(ps_basic, sizeof(ps_basic), &m_dx_ps_basic));
+    for (unsigned i = 0; i < NUM_SHADERS; i++) {
+        auto& bytecode = pshaders[i];
+        auto& vs = bytecode[0];
+        auto& ps = bytecode[1];
+        COMCHECKCALL(m_dxdevice->CreateVertexShader(vs.p_data, vs.datasize, &m_shaders[i].vs));
+        COMCHECKCALL(m_dxdevice->CreatePixelShader(ps.p_data, ps.datasize, &m_shaders[i].ps));
+    }
 
     {
         static const LPCSTR POSITION = "POSITION";
@@ -155,8 +178,6 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
         COMCHECKCALL(m_dxdevice->CreateInputLayout(inputs, PI_ARRAYSIZE(inputs), vs_basic, sizeof(vs_basic), &m_dxinputlayout));
     }
 
-    m_dxdevice->VSSetShader(m_dx_vs_basic);
-    m_dxdevice->PSSetShader(m_dx_ps_basic);
     m_dxdevice->IASetInputLayout(m_dxinputlayout);
     m_dxdevice->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -168,9 +189,12 @@ void pi_D3D10Backend::release_objects() noexcept
     m_samplemap.clear();
     COMRELEASESAFE(m_dxswapchainbuffer);
 
+    for (auto& shader : m_shaders) {
+        COMRELEASE(shader.vs);
+        COMRELEASE(shader.ps);
+    }
+
     COMRELEASE(m_dxinputlayout);
-    COMRELEASE(m_dx_ps_basic);
-    COMRELEASE(m_dx_vs_basic);
     COMRELEASE(m_dxswapchain);
     COMRELEASE(m_dxdevice);
 }

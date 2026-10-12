@@ -15,6 +15,8 @@
     #error "D3D10's backend is compiled in C++! Need a C++ compiler / include it in a .cpp file"
 #endif
 
+constexpr unsigned NUM_SHADERS = 3;
+
 class PI_DLL
 {
     HMODULE _hmodule = NULL;
@@ -101,6 +103,18 @@ struct pi_D3D10sampledata
     }
 };
 
+struct pi_D3D10shader
+{
+    ID3D10VertexShader* vs;
+    ID3D10PixelShader* ps;
+
+    void bind(ID3D10Device* dxdevice) const {
+        dxdevice->VSSetShader(vs);
+        dxdevice->PSSetShader(ps);
+    }
+};
+
+
 struct pi_D3D10Backend
 {
     pi_D3D10Backend(const PI_BACKEND_RENDER_DESC& desc, PI_BACKEND_RENDER_INFO* pinfo);
@@ -129,6 +143,7 @@ private:
     bool update_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]) noexcept;
 
     void update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept;
+    void update_scene_lightproperties(PI_HRENDERBACKEND_SCENE hscene, const PI_LIGHT_PROPERTIES* properties) noexcept;
     void begin_scene(PI_HRENDERBACKEND_SCENE hscene, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_VECTOR4* clear_rgba) noexcept;
     void end_scene() noexcept;
 
@@ -139,8 +154,7 @@ private:
     IDXGISwapChain* m_dxswapchain = NULL;
     ID3D10Texture2D* m_dxswapchainbuffer = NULL;
 
-    ID3D10VertexShader* m_dx_vs_basic = NULL;
-    ID3D10PixelShader* m_dx_ps_basic = NULL;
+    pi_D3D10shader m_shaders[NUM_SHADERS];
     
     ID3D10InputLayout* m_dxinputlayout = NULL;
 
@@ -156,6 +170,7 @@ private:
     PI_HRENDERBACKEND_WORLDENV m_lastworldenv = NULL;
     void bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept;
     void bind_worldenv(PI_HRENDERBACKEND_WORLDENV) noexcept;
+    const pi_D3D10shader* get_shader(PI_WORLDENV_EFFECTS effects) noexcept;
 public:
     static size_t s_calcsize() noexcept;
 private:
@@ -170,6 +185,8 @@ struct pi_D3D10WorldEnv
     ID3D10RasterizerState* dxrasterizer;
     ID3D10DepthStencilState* dxdepthstencil;
 
+    const pi_D3D10shader* shader;
+
     union {
         DXGI_SAMPLE_DESC sample_desc;
         SAMPLE_HASH sample_id;
@@ -183,6 +200,7 @@ struct pi_D3D10Scene
     ID3D10Buffer* dxcbvbuffer = NULL; // Main constant buffer
         /* When lighting is on... */
     ID3D10Buffer* dxcblightbuffer = NULL;
+    ID3D10Buffer* dxcbpsbuffer = NULL;
     ID3D10Buffer* dxcblightstagingbuffer = NULL;
     unsigned last_dirlightcount = 0;
     unsigned last_ptlightcount = 0;

@@ -34,6 +34,15 @@ typedef struct PI_INSTANCE {
         PI_MEMBER_DEFAULT({ 1.0f, 1.0f, 1.0f, 1.0f });
 } PI_INSTANCE;
 
+typedef struct PI_LIGHT_PROPERTIES
+{
+    PI_VECTOR3X ambient_color PI_MEMBER_DEFAULT( { 0.0f, 0.0f, 0.0f, 0.0f } );
+        /* Only used when specular lighting is on */
+    PI_VECTOR3 view_position;
+    float specular_exponent PI_MEMBER_DEFAULT( 22.0f );
+    PI_VECTOR4 specular_color PI_MEMBER_DEFAULT( { 1.0f, 1.0f, 1.0f, 1.0f } );
+} PI_LIGHT_PROPERTIES;
+
 typedef struct PI_DIRECTIONAL_LIGHT {
     PI_VECTOR3X direction;
     PI_VECTOR4 color;
@@ -201,6 +210,7 @@ PI_EXTERN_C PI_HLIGHT pi_add_light(PI_HSCENE hscene, PI_LIGHTTYPE type, const PI
 PI_EXTERN_C void pi_remove_light(PI_HLIGHT hlight);
 PI_EXTERN_C bool pi_update_light(PI_HLIGHT hlight, const PI_LIGHT* light);
 
+PI_EXTERN_C bool pi_set_light_properties(PI_HSCENE hscene, const PI_LIGHT_PROPERTIES* properties);
 
 #endif
 
@@ -247,6 +257,8 @@ typedef void (*PI_PFN_BACKEND_RENDER_SUBMIT_MESH)(PI_HRENDERBACKEND hbackend, PI
 
 typedef void (*PI_PFN_BACKEND_RENDER_UPDATE_LIGHTS)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, PI_LIGHTTYPE type, unsigned update_start, unsigned update_count, const PI_LIGHT lights[], unsigned full_light_count);
 
+typedef void (*PI_PFN_BACKEND_RENDER_UPDATE_SCENE_LIGHTPROPERTIES)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_LIGHT_PROPERTIES* properties);
+
 typedef struct PI_BACKEND_RENDER_CALLBACKS {
     PI_PFN_BACKEND_RENDER_CLOSE pfn_close;
 
@@ -265,6 +277,7 @@ typedef struct PI_BACKEND_RENDER_CALLBACKS {
     PI_PFN_BACKEND_RENDER_UPDATE_INSTBUFFER pfn_update_instbuffer;
 
     PI_PFN_BACKEND_RENDER_UPDATE_SCENE_VP pfn_update_scene_vp;
+    PI_PFN_BACKEND_RENDER_UPDATE_SCENE_LIGHTPROPERTIES pfn_update_scene_lightproperties;
     PI_PFN_BACKEND_RENDER_BEGIN_SCENE pfn_begin_scene;
     PI_PFN_BACKEND_RENDER_END_SCENE pfn_end_scene;
 

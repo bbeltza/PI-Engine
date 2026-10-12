@@ -133,6 +133,7 @@ struct PI_WORLDENV_IMPL
     ~PI_WORLDENV_IMPL() noexcept;
 
     PI_SYSTEM_RENDER* renderer;
+    PI_WORLDENV_EFFECTS effects;
 
     PI_HRENDERBACKEND_WORLDENV get_backend() noexcept {
         return reinterpret_cast<PI_HRENDERBACKEND_WORLDENV>(this + 1);
@@ -177,9 +178,12 @@ struct PI_SYSTEM_SCENE
     PI_MATRIX_4X4 view;
     PI_VECTOR4 clear_color;
 
+    PI_LIGHT_PROPERTIES lightprops;
+
     struct {
         bool viewproj : 1;
-    } dirty{ true };
+        bool lightprops : 1;
+    } dirty{ true, true };
 
     PI_HRENDERBACKEND_SCENE get_backend() noexcept {
         return reinterpret_cast<PI_HRENDERBACKEND_SCENE>(this + 1);

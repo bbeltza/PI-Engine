@@ -16,12 +16,27 @@ static inline D3D10_COMPARISON_FUNC d3d10_compare_from_pi(PI_COMPARE_FUNC func)
     return D3D10_COMPARISON_LESS;
 }
 
+const pi_D3D10shader* pi_D3D10Backend::get_shader(PI_WORLDENV_EFFECTS effects) noexcept
+{
+    switch (effects) {
+        case PI_WORLDEFFECT_NONE: return &m_shaders[0];
+        case PI_WORLDEFFECT_LIGHTING: return &m_shaders[1];
+        case PI_WORLDEFFECT_LIGHTING | PI_WORLDEFFECT_SPECULAR: return &m_shaders[2];
+        default: return NULL;
+    }
+}
+
 bool pi_D3D10Backend::create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_WORLDENV_DESC* pdesc) noexcept
 {
     HRESULT hr;
     new (hworldenv) pi_D3D10WorldEnv;
     
     if (pdesc->multisample->samples > D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT) {
+        return false;
+    }
+
+    hworldenv->shader = get_shader(pdesc->effects);
+    if (!hworldenv->shader) {
         return false;
     }
 
@@ -63,7 +78,7 @@ bool pi_D3D10Backend::create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworlde
         else if (pdesc->rasterizer->cullflags & PI_CULL_FRONT)
             desc.CullMode = D3D10_CULL_FRONT;
         else
-            __assume(0);
+            PI_ASSUME(0);
 
         COMCHECKCALL(m_dxdevice->CreateRasterizerState(&desc, &hworldenv->dxrasterizer));
         if (FAILED(hr)) {
@@ -96,7 +111,8 @@ void pi_D3D10Backend::bind_worldenv(PI_HRENDERBACKEND_WORLDENV hworldenv) noexce
         m_dxdevice->OMSetRenderTargets(0, NULL, NULL);
         m_dxdevice->RSSetState(NULL);
         m_dxdevice->OMSetDepthStencilState(NULL, 0);
-
+        m_dxdevice->VSSetShader(NULL);
+        m_dxdevice->PSSetShader(NULL);
         return;
     }
 
@@ -153,6 +169,7 @@ void pi_D3D10Backend::bind_worldenv(PI_HRENDERBACKEND_WORLDENV hworldenv) noexce
 
     if (m_lastworldenv != hworldenv)
     {
+        hworldenv->shader->bind(m_dxdevice);
         m_dxdevice->RSSetState(hworldenv->dxrasterizer);
         m_dxdevice->OMSetDepthStencilState(hworldenv->dxdepthstencil, 0);
         m_lastworldenv = hworldenv;

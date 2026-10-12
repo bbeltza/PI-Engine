@@ -289,3 +289,14 @@ PI_EXTERN_C bool pi_update_light(PI_HLIGHT hlight, const PI_LIGHT* light) {
     }
     return hlight->hscene->update_light(hlight, light);
 }
+
+PI_EXTERN_C bool pi_set_light_properties(PI_HSCENE hscene, const PI_LIGHT_PROPERTIES* properties) {
+    HSCENE_CHECK(hscene, hsysscene);
+    if (!(hsysscene->worldenv->effects & PI_WORLDEFFECT_LIGHTING)) {
+        return false;
+    }
+
+    hsysscene->lightprops = *properties;
+    hsysscene->dirty.lightprops = true;
+    return true;
+}

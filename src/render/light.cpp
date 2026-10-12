@@ -56,6 +56,11 @@ void update_remove_lights_dirty(PI_LIST<PI_LIGHT_IMPL>& lights, PI_HLIGHT hlight
 
 PI_HLIGHT PI_SYSTEM_SCENE::add_light(PI_LIGHTTYPE type, const PI_LIGHT* initial_parameters) noexcept
 {
+    if (!(worldenv->effects & PI_WORLDEFFECT_LIGHTING)) {
+        fprintf(stderr, "[ERROR]: Can't add light: World environment has lighting disabled\n");
+        return NULL;
+    }
+
     unsigned lindex = 0;
     switch (type) {
         case PI_LIGHT_DIRECTIONAL:

@@ -16,6 +16,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#define NUM_SHADERS 3
+
 #ifndef __has_include
     #define __has_include(n) 0
 #endif
@@ -44,7 +46,9 @@ typedef struct pi_GLfuncs {
     PFNGLBUFFERDATAPROC BufferData;
     PFNGLBUFFERSUBDATAPROC BufferSubData;
     PFNGLMAPBUFFERPROC MapBuffer;
+    PFNGLMAPBUFFERRANGEPROC MapBufferRange;
     PFNGLUNMAPBUFFERPROC UnmapBuffer;
+    PFNGLCOPYBUFFERSUBDATAPROC CopyBufferSubData;
 
     PFNGLGENVERTEXARRAYSPROC GenVertexArrays;
     PFNGLDELETEVERTEXARRAYSPROC DeleteVertexArrays;
@@ -66,7 +70,7 @@ typedef struct pi_GLfuncs {
     
     PFNGLGETUNIFORMBLOCKINDEXPROC GetUniformBlockIndex;
     PFNGLUNIFORMBLOCKBINDINGPROC UniformBlockBinding;
-    PFNGLBINDBUFFERBASEPROC BindBufferBase;
+    PFNGLBINDBUFFERRANGEPROC BindBufferRange;
 
     PFNGLGETSHADERIVPROC GetShaderiv;
     PFNGLGETPROGRAMIVPROC GetProgramiv;
@@ -129,6 +133,7 @@ typedef struct PI_RENDERBACKEND_WORLDENV {
     GLboolean depthenable;
 
     GLsizei samples;
+    GLuint shader;
 } pi_GLworldenv;
 
 typedef struct PI_RENDERBACKEND {
@@ -143,13 +148,32 @@ typedef struct PI_RENDERBACKEND {
     pi_GLworldenv worldenv_state;
     pi_GLworldenv* currworldenv;
 
+    GLuint shaders[NUM_SHADERS];
+
     GLuint wndwidth, wndheight;
     GLmsaabuffer* msaabuffers;
     GLint msaasamples;
+
+    //GLint uboalignment;
+    GLuint ubofsoffset;
+    // At most 1,024, even if the hardware allows more
+    GLuint maxubodirlights;
+    GLuint maxuboptlights;
 } pi_GLbackend;
 
 typedef struct PI_RENDERBACKEND_SCENE {
     GLuint ubo;
+    union {
+        struct {
+            GLuint dirlightubo;
+            GLuint ptlightubo;
+            GLuint dirlightstagingbuf;
+            GLuint ptlightstagingbuf;
+        };
+        GLuint lightubos[4];
+    };
+    unsigned last_dirlightcount;
+    unsigned last_ptlightcount;
 } pi_GLscene;
 typedef struct PI_RENDERBACKEND_MESH {
     GLuint vboandibo;
@@ -170,10 +194,8 @@ typedef struct PI_RENDERBACKEND_INSTBUFFER {
 #endif
 
 
-/* Compile shader corresponding to the word environment effects passed in `effects`. And return a name given by `glCreateProgram`. */
-PI_EXTERN_C GLuint pi_gl_compile_shader(pi_GLbackend* hbackend, PI_WORLDENV_EFFECTS effects);
-/* `pi_gl_compile_shader` CAN store cached shaders (Returned by `glCreateShader`) inside the `hbackend`'s internal storage. This function will cleanup any shader that has been cached. This might slow down compilation times if `pi_gl_compile_shader` is called once again. */
-PI_EXTERN_C void pi_gl_clean_cached_shaders(pi_GLbackend* hbackend);
+/* Compile shader with additional defined from `defines` (or ""). And return the name given created by `glCreateProgram`. */
+PI_EXTERN_C GLuint pi_gl_compile_shader(pi_GLbackend* hbackend, const GLchar* defines_code);
 
 /**/
 
@@ -203,9 +225,12 @@ PI_EXTERN_C bool fn_render_gl_update_instbuffer(pi_GLbackend* hbackend, pi_GLins
                                         const PI_INSTANCE data[]
                                     );
 PI_EXTERN_C void fn_render_gl_update_scene_vp(pi_GLbackend* hbackend, pi_GLscene* hscene, const PI_MATRIX_4X4* vpmatrix);
+PI_EXTERN_C void fn_render_gl_update_scene_lightproperties(pi_GLbackend* hbackend, pi_GLscene* hscene, const PI_LIGHT_PROPERTIES* properties);
 PI_EXTERN_C void fn_render_gl_begin_scene(pi_GLbackend* hbackend, pi_GLscene* hscene, pi_GLworldenv* hworldenv, const PI_VECTOR4* clear_rgba);
 PI_EXTERN_C void fn_render_gl_end_scene(pi_GLbackend* hbackend);
 PI_EXTERN_C void fn_render_gl_submit_mesh(pi_GLbackend* hbackend, pi_GLmesh* hmesh, pi_GLinstbuffer* hinstbuffer, unsigned instance_count);
+
+PI_EXTERN_C void fn_render_gl_update_lights(pi_GLbackend* hbackend, pi_GLscene* hscene, PI_LIGHTTYPE type, unsigned update_start, unsigned update_count, const PI_LIGHT lights[], unsigned full_light_count);
 
 PI_EXTERN_C const PI_BACKEND_RENDER _PI_BACKEND_RENDER_GL;
 

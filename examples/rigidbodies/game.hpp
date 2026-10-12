@@ -12,6 +12,7 @@ PI_DECLARE_RAIIH(PI_HWORLDENV);
 PI_DECLARE_RAIIH(PI_HRIGIDBODY);
 PI_DECLARE_RAIIH(PI_HMESH);
 PI_DECLARE_RAIIH(PI_HINSTANCE);
+PI_DECLARE_RAIIH(PI_HLIGHT);
 
 struct GAME_CUBE {
     GAME_CUBE(PI_HGAME hgame, const PI_VECTOR3& position, const PI_VECTOR3& scale, PI_HMESH hmesh);
@@ -38,10 +39,12 @@ private:
     PI_HWORLDENV_RAII hworldenv;
     PI_HSCENE_RAII hscene;
 
-    PI_HMESH hcubemesh;
+    PI_HMESH_RAII hcubemesh;
 
     GAME_CUBE ground;
     GAME_CUBE falling_cube;
+
+    PI_HLIGHT_RAII hlight;
 
     bool k_left : 1;
     bool k_right : 1;

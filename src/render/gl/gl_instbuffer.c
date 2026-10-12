@@ -1,7 +1,5 @@
 #include "render_gl.h"
 
-// Something is giving me GL_INVALID_ENUM...
-
 bool fn_render_gl_create_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer)
 {
     hinstbuffer->vbomesh = 0;

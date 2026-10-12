@@ -6,6 +6,7 @@
 
 static PI_HWORLDENV create_worldenv(PI_HGAME hgame) noexcept;
 static PI_HSCENE create_scene(PI_HGAME hgame) noexcept;
+static PI_HLIGHT create_light(PI_HSCENE hscene) noexcept;
 
 PI_GAME::PI_GAME():
     hworldenv{ create_worldenv(this) },
@@ -20,6 +21,8 @@ PI_GAME::PI_GAME():
     ground{ this, { 0.5f, -2.0f, 1.0f }, { 4.0f, 1.0f, 5.0f }, hcubemesh },
     falling_cube{ this, { 0.0f, 0.0f, 2.0f }, {1.0f, 1.0f, 1.0f }, hcubemesh },
 
+    hlight{ create_light(hscene) },
+
     dirty_look{ true },
     dirty_view{ true }
 {
@@ -28,6 +31,11 @@ PI_GAME::PI_GAME():
     }
 
     pi_enable_scene(hscene, 0);
+
+    PI_LIGHT_PROPERTIES light_properties = {
+        { 0.1f, 0.1f, 0.1f, 1.0f }
+    };
+    pi_set_light_properties(hscene, &light_properties);
 
     PI_RIGIDBODY_PROPERTIES* ground_properties = pi_get_rigid_body_properties(ground.hrigidbody);
     ground_properties->mass = 0.0f;
@@ -196,10 +204,18 @@ static PI_HWORLDENV create_worldenv(PI_HGAME hgame) noexcept
     depth.depthcompare = PI_COMPARE_LESS_EQUAL;
 
     PI::WORLDENV_DESC desc = {
-        PI_WORLDEFFECT_NONE,
+        PI_WORLDEFFECT_LIGHTING,
         raster,
         depth
     };
 
     return pi_create_worldenvironment(hgame, &desc);
+}
+
+static PI_HLIGHT create_light(PI_HSCENE hscene) noexcept
+{
+    PI_LIGHT light;
+    light.directional.direction = PI_VECTOR3X{ -0.6f, -1.0f, 0.7f };
+    light.directional.color = PI_VECTOR4{ 0.8f, 0.76f, 1.0f, 1.0f };
+    return pi_add_light(hscene, PI_LIGHT_DIRECTIONAL, &light);
 }

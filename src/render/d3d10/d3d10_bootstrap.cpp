@@ -73,6 +73,9 @@ pi_D3D10Backend::pi_D3D10Backend(const PI_BACKEND_RENDER_DESC& desc, PI_BACKEND_
     pcallbacks->pfn_update_scene_vp = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept -> void {
         hbackend->update_scene_vp(hscene, vpmatrix);
     };
+    pcallbacks->pfn_update_scene_lightproperties = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_LIGHT_PROPERTIES* properties) noexcept -> void {
+        hbackend->update_scene_lightproperties(hscene, properties);
+    };
     pcallbacks->pfn_begin_scene = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_VECTOR4* clear_rgba) noexcept -> void {
         hbackend->begin_scene(hscene, hworldenv, clear_rgba);
     };

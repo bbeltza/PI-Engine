@@ -99,11 +99,29 @@ struct SHADER_INFO
     const char* profile;
     const char* entry;
     const char* varname;
+    const D3D10_SHADER_MACRO* defines = NULL;
+};
+
+constexpr D3D10_SHADER_MACRO MACROS_LIGHTON[] = {
+    { "WORLDEFFECT_LIGHTING", "" },
+    { NULL, NULL }
+};
+constexpr D3D10_SHADER_MACRO MACROS_SPECULARON[] = {
+    MACROS_LIGHTON[0],
+    { "WORLDEFFECT_SPECULAR", "" },
+    { NULL, NULL }
 };
 
 constexpr SHADER_INFO shaders[] = {
+    /* Basic shaders (No world-effect flags at all) */
     { "vs_4_0", "VSmain", "vs_basic" },
-    { "ps_4_0", "PSmain", "ps_basic" }
+    { "ps_4_0", "PSmain", "ps_basic" },
+    /* Light-on shaders (With WORLDEFFECT_LIGHTING) */
+    { "vs_4_0", "VSmain", "vs_light", MACROS_LIGHTON },
+    { "ps_4_0", "PSmain", "ps_light", MACROS_LIGHTON },
+    /* Specular light-on shaders (With WORLDEFFECT_LIGHTING and WORLDEFFECT_SPECULAR) */
+    { "vs_4_0", "VSmain", "vs_lightspecular", MACROS_SPECULARON },
+    { "ps_4_0", "PSmain", "ps_lightspecular", MACROS_SPECULARON },
 };
 
 
@@ -125,7 +143,7 @@ bool compile_shader(const SHADER_INFO& info, FILE* output_h, LPCSTR input_data, 
             input_len,
             input_path,
             
-            NULL,
+            info.defines,
             &includehandler,
 
             info.entry,

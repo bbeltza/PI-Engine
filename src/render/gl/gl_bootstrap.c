@@ -38,9 +38,11 @@ static bool s_gl_entry(PI_HRENDERBACKEND hbackend, const PI_BACKEND_RENDER_DESC*
     pinfo->callbacks.pfn_alloc_instbuffer = fn_render_gl_alloc_instbuffer;
     pinfo->callbacks.pfn_update_instbuffer = fn_render_gl_update_instbuffer;
     pinfo->callbacks.pfn_update_scene_vp = fn_render_gl_update_scene_vp;
+    pinfo->callbacks.pfn_update_scene_lightproperties = fn_render_gl_update_scene_lightproperties;
     pinfo->callbacks.pfn_begin_scene = fn_render_gl_begin_scene;    
     pinfo->callbacks.pfn_end_scene = fn_render_gl_end_scene;
     pinfo->callbacks.pfn_submit_mesh = fn_render_gl_submit_mesh;    
+    pinfo->callbacks.pfn_update_lights = fn_render_gl_update_lights;    
 
     ASSERT_BACKEND_CALLBACKS(pinfo->callbacks);
     DEFINE_BACKEND_STRUCTURES(pinfo->structures);

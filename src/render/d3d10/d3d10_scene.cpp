@@ -45,8 +45,29 @@ void pi_D3D10Backend::update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const PI_M
     COMCHECKCALL(hscene->dxcbvbuffer->Map(D3D10_MAP_WRITE_DISCARD, 0, reinterpret_cast<void**>(&psceneenv)));
     PI_ASSERT(SUCCEEDED(hr));
         psceneenv->vpmatrix = *vpmatrix;
-        psceneenv->ambient = PI_VECTOR3{ 0.045f, 0.04f, 0.05f };
     hscene->dxcbvbuffer->Unmap();
+}
+
+void pi_D3D10Backend::update_scene_lightproperties(PI_HRENDERBACKEND_SCENE hscene, const PI_LIGHT_PROPERTIES* properties) noexcept {
+    HRESULT hr;
+    if (!hscene->dxcbpsbuffer) {
+        D3D10_BUFFER_DESC desc = {};
+        desc.ByteWidth = sizeof(PI_LIGHT_PROPERTIES);
+        desc.Usage = D3D10_USAGE_DYNAMIC;
+        desc.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
+        desc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+        D3D10_SUBRESOURCE_DATA initialdata = {};
+        initialdata.pSysMem = properties;
+        COMCHECKCALL(m_dxdevice->CreateBuffer(&desc, &initialdata, &hscene->dxcbpsbuffer));
+        return;
+    }
+
+    PI_LIGHT_PROPERTIES* pproperties = NULL;
+    COMCHECKCALL(hscene->dxcbpsbuffer->Map(D3D10_MAP_WRITE_DISCARD, 0, reinterpret_cast<void**>(&pproperties)));
+    PI_ASSERT(SUCCEEDED(hr));
+        *pproperties = *properties;
+    hscene->dxcbpsbuffer->Unmap();
+    
 }
 
 void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
@@ -56,7 +77,7 @@ void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
             hscene ? hscene->dxcbvbuffer : NULL
         };
         ID3D10Buffer* const psbuffers[] = {
-            vsbuffers[0],
+            hscene ? hscene->dxcbpsbuffer : NULL,
             hscene ? hscene->dxcblightbuffer : NULL
         };
         m_dxdevice->VSSetConstantBuffers(0, PI_ARRAYSIZE(vsbuffers), vsbuffers);
@@ -68,6 +89,9 @@ void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
 
 void pi_D3D10Backend::begin_scene(PI_HRENDERBACKEND_SCENE hscene, PI_HRENDERBACKEND_WORLDENV hworldenv, const PI_VECTOR4* clear_rgba) noexcept
 {
+    PI_ASSERT((hscene && hworldenv) || (!hscene && !hworldenv));
+    PI_ASSERT(hscene->dxcblightbuffer || hworldenv->shader == &m_shaders[0]);
+
     this->bind_worldenv(hworldenv);
     this->bind_scene(hscene);
 

@@ -1,7 +1,20 @@
 #include "render_gl.h"
 
+static unsigned get_shader_index(PI_WORLDENV_EFFECTS effects)
+{
+    switch (effects) {
+        case PI_WORLDEFFECT_NONE: return 0;
+        case PI_WORLDEFFECT_LIGHTING: return 1;
+        case PI_WORLDEFFECT_LIGHTING | PI_WORLDEFFECT_SPECULAR: return 2;
+        default: PI_ASSUME(0);
+    }
+}
+
 bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv* hworldenv, const PI_WORLDENV_DESC* pdesc)
 {
+/* Shader state */
+    hworldenv->shader = hbackend->shaders[get_shader_index(pdesc->effects)];
+
 /* Rasterizer state */
     switch (pdesc->rasterizer->fillmode)
     {
@@ -73,7 +86,6 @@ bool fn_render_gl_create_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv*
 
     hworldenv->samples = pdesc->multisample->samples == 1 ? 0 :
                     pdesc->multisample->samples;
-
     return true;
 }
 void fn_render_gl_destroy_worldenvironment(pi_GLbackend* hbackend, pi_GLworldenv* hworldenv)

@@ -9,8 +9,6 @@
 
 #include "shader_properties.h"
 
-#define WORLDEFFECT_LIGHTING
-
 #ifndef WORLDEFFECT_LIGHTING
     #ifdef WORLDEFFECT_SPECULAR
         #error "Can't compile with no WORLDEFFECT_LIGHTING but WORLDEFFECT_SPECULAR defined."
@@ -20,7 +18,7 @@
         float4 position; /* "w" component ignored. Position of the light */
         float4 color; /* Color and intensity (in the "a" channel) of the light */
         float range;
-        float falloff;
+        float attenuation;
 
         float2 _padding;
     };
@@ -45,12 +43,6 @@
     };
 #endif
 
-#ifdef WORLDEFFECT_SPECULAR
-    cbuffer PI_SPECULARSETTING: register( b2 ) {
-        float4 color;
-        float exponent;
-    };
-#endif
 
 struct PI_VSINPUT
 {
@@ -80,13 +72,21 @@ struct PI_PSINPUT
     float4 pos: SV_Position;
 };
 
-cbuffer PI_CBUFFER: register(b0)
+    /* VS environment (constant buffer bound at slot 0 with VSSetConstantBuffers) */
+cbuffer VI_VSENV: register(b0)
 {
-    float4x4 view_proj;
+    float4x4 cvs_viewproj;
+}
 
-    float3 c_ambient; // Only used when lighting is on
-};
-
+    /* PS environment (constant buffer bound at slot 0 with PSSetConstantBuffers) */
+cbuffer PI_PSENV: register(b0)
+{
+    float3 cps_ambient;
+        /* Only when specular lighting is on */
+    float3 cps_viewpos;
+    float cps_specular_exponent;
+    float4 cps_specular_color;
+}
 
 PI_PSINPUT VSmain(PI_VSINPUT input)
 {
@@ -94,7 +94,7 @@ PI_PSINPUT VSmain(PI_VSINPUT input)
     vpos = mul(input.itransform, vpos);
 
     PI_PSINPUT output;
-    output.pos = mul(view_proj, vpos);
+    output.pos = mul(cvs_viewproj, vpos);
     output.color = input.ialbedo;
 #ifdef WORLDEFFECT_LIGHTING
     output.normal = input.vnormal;
@@ -111,7 +111,13 @@ float4 PSmain(PI_PSINPUT input): SV_Target
     float4 color = input.color;
 #ifdef WORLDEFFECT_LIGHTING
     {
-        float3 lcol = c_ambient; 
+        float3 lcol = cps_ambient; 
+        
+    #ifdef WORLDEFFECT_SPECULAR
+        float3 lspec = float3(0.0, 0.0, 0.0);
+        float3 viewdir = cps_viewpos - input.worldpos;
+        viewdir = normalize(viewdir);
+    #endif
 
         for (uint i = 0; i < NUM_DIRLIGHTS; i++) {
             const PI_DIRLIGHT light = LIGHTS[i].dirlight;
@@ -127,10 +133,25 @@ float4 PSmain(PI_PSINPUT input): SV_Target
             float diffuse = dot(direction, input.normal);
             diffuse = max(diffuse, 0.0);
 
+            float d = distance(light.position.xyz, input.worldpos);
+            diffuse *= 1.0 - smoothstep(light.range - light.attenuation, light.range, d);
+
+        #ifdef WORLDEFFECT_SPECULAR
+            float3 reflection = reflect(direction, viewdir);
+            reflection = normalize(reflection);
+            float spec = dot(reflection, input.normal);
+            spec = max(spec, 0.0);
+            spec = pow(spec, cps_specular_exponent);
+            lspec += diffuse * spec * cps_specular_color.rgb * cps_specular_color.a;
+        #endif
+
             lcol += diffuse * light.color.rgb * light.color.a;
         }
 
         color.rgb *= lcol;
+    #ifdef WORLDEFFECT_SPECULAR
+        color.rgb += lspec;
+    #endif
     }    
 #endif
     return color;

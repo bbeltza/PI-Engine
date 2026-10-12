@@ -27,15 +27,16 @@ static const char* glerrortostr(GLenum err)
 }
 
 static void glerrorcheck(PFNGLGETERRORPROC pfn_glGetError, GLenum* lasterror, const char* name) {
-    GLenum err;
-    do {
-        err = pfn_glGetError();
-        if (err == GL_NO_ERROR)
-            break;
-
+    GLenum err = pfn_glGetError();
+    if (err == GL_NO_ERROR) {
+        *lasterror = err;
+        return;
+    }
+    while (err != GL_NO_ERROR) {
         fprintf(stderr, "GL ERROR at %s: \"%s\" (%X)\n", name, glerrortostr(err), err);
-    } while (1);
-    *lasterror = err;
+        *lasterror = err;
+        err = pfn_glGetError();
+    }
 }
 
 #if USE_GL_DBGTRAMPOLINE
@@ -267,7 +268,9 @@ bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_A
     GETPROC(glfuncs, BufferData);
     GETPROC(glfuncs, BufferSubData);
     GETPROC(glfuncs, MapBuffer);
+    GETPROC(glfuncs, MapBufferRange);
     GETPROC(glfuncs, UnmapBuffer);
+    GETPROC(glfuncs, CopyBufferSubData);
 
     GETPROC(glfuncs, GenVertexArrays);
     GETPROC(glfuncs, DeleteVertexArrays);
@@ -289,7 +292,7 @@ bool pi_gl_render_loadfuncs(PI_PFN_GLGETPROCADDRESS pfn_GetProcAddress, PI_PFN_A
 
     GETPROC(glfuncs, GetUniformBlockIndex);
     GETPROC(glfuncs, UniformBlockBinding);
-    GETPROC(glfuncs, BindBufferBase);
+    GETPROC(glfuncs, BindBufferRange);
     
     GETPROC(glfuncs, GetShaderiv);
     GETPROC(glfuncs, GetProgramiv);

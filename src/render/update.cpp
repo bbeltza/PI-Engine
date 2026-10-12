@@ -50,6 +50,14 @@ bool PI_SYSTEM_SCENE::_update_dirty() noexcept
             );
         this->dirty.viewproj = false;
     }
+    if (this->dirty.lightprops) {
+        backend.callbacks.pfn_update_scene_lightproperties(
+                hbackend,
+                hscenebackend,
+                &lightprops
+            );
+        this->dirty.lightprops = false;
+    }
 
     if (this->m_dirlight_count_dirty) {
         m_lights_dirty.clear();

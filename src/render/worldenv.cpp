@@ -38,7 +38,8 @@ void PI_SYSTEM_RENDER::remove_worldenv(PI_HWORLDENV hworldenv) noexcept {
 //
 
 PI_WORLDENV_IMPL::PI_WORLDENV_IMPL(PI_SYSTEM_RENDER* _renderer, const PI_WORLDENV_DESC* pdesc) noexcept:
-    renderer(_renderer)
+    renderer{_renderer},
+    effects{pdesc->effects}
 {
     if (!renderer->backend.callbacks.pfn_create_worldenvironment(renderer->get_backend(), this->get_backend(), pdesc)) {
         this->renderer = NULL;
