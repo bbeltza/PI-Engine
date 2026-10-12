@@ -254,5 +254,38 @@ PI_EXTERN_C void pi_remove_scene_mesh(PI_HINSTANCE hmeshinst) {
     hmeshinst->instbuffer->instlist.remove(*hmeshinst);
 }
 PI_EXTERN_C bool pi_update_mesh_instance(PI_HINSTANCE hmeshinst, const PI_INSTANCE* instance) {
+    if (!hmeshinst) {
+        return false;
+    }
+    if (!instance) {
+        return false;
+    }
     return hmeshinst->update_instance(instance);
+}
+
+
+PI_EXTERN_C PI_HLIGHT pi_add_light(PI_HSCENE hscene, PI_LIGHTTYPE type, const PI_LIGHT* initial_parameters) {
+    if (!hscene) {
+        return NULL;
+    }
+    if (!hscene->initsubsystems.render) {
+        return NULL;
+    }
+
+    return hscene->subsystems.render->add_light(type, initial_parameters);
+}
+PI_EXTERN_C void pi_remove_light(PI_HLIGHT hlight) {
+    if (!hlight) {
+        return;
+    }
+    hlight->hscene->remove_light(hlight);
+}
+PI_EXTERN_C bool pi_update_light(PI_HLIGHT hlight, const PI_LIGHT* light) {
+    if (!hlight) {
+        return false;
+    }
+    if (!light) {
+        return false;
+    }
+    return hlight->hscene->update_light(hlight, light);
 }

@@ -84,6 +84,10 @@ pi_D3D10Backend::pi_D3D10Backend(const PI_BACKEND_RENDER_DESC& desc, PI_BACKEND_
         hbackend->submit_mesh(hmesh, hinstbuffer, instance_count);
     };
 
+    pcallbacks->pfn_update_lights = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, PI_LIGHTTYPE type, unsigned update_start, unsigned update_count, const PI_LIGHT lights[], unsigned full_light_count) noexcept -> void {
+        hbackend->update_lights(hscene, type, update_start, update_count, lights, full_light_count);
+    };
+
     ASSERT_BACKEND_CALLBACKS(pinfo->callbacks);
     DEFINE_BACKEND_STRUCTURES(pinfo->structures);
 }

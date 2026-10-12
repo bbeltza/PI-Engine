@@ -115,6 +115,16 @@ using PI_INSTMAP = PI_MAP<
         PI_INSTMAP_ALLOC
     >;
 
+struct PI_LIGHT_IMPL
+{
+    PI_LIGHT_IMPL(PI_HSYSTEMSCENE hscene, PI_LIGHTTYPE type, unsigned index) noexcept;
+    ~PI_LIGHT_IMPL() noexcept;
+    
+    PI_HSYSTEMSCENE hscene;
+    PI_LIGHTTYPE type = PI_LIGHT_NONE;
+    unsigned index;
+};
+
 struct PI_WORLDENV_IMPL
 {
     static constexpr unsigned REF_MASK = 0x80000000;
@@ -178,11 +188,26 @@ struct PI_SYSTEM_SCENE
     bool update() noexcept;
 public:
     PI_HINSTANCE add_scene_mesh(PI_HMESH hmesh, const PI_INSTANCE* instance) noexcept;
+
+    PI_HLIGHT add_light(PI_LIGHTTYPE type, const PI_LIGHT* initial_parameters) noexcept;
+    void remove_light(PI_HLIGHT hlight) noexcept;
+    bool update_light(PI_HLIGHT hlight, const PI_LIGHT* light) noexcept;
 private:
     PI_INSTMAP m_instance_set;
+
+    PI_LIST<PI_LIGHT_IMPL> m_lights;
+    PI_VECTOR<PI_DIRECTIONAL_LIGHT> m_dirlight_buffer;
+    PI_VECTOR<PI_POINT_LIGHT> m_ptlight_buffer;
+    PI_VECTOR<PI_LIGHT> m_lights_dirty;
+
+    unsigned m_dirlight_start_dirty = 0;
+    unsigned m_dirlight_count_dirty = 0;
+    unsigned m_ptlight_start_dirty = 0;
+    unsigned m_ptlight_count_dirty = 0;
     
     bool _update_dirty() noexcept;
     bool _update_instances() noexcept;
+    bool _update_lights() noexcept;
     bool _submit_scene() noexcept;
 };
 

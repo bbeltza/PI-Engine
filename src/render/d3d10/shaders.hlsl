@@ -31,13 +31,16 @@
     
         /* 80 bytes */
     struct PI_LIGHTGROUP {
-        PI_POINTLIGHT ptlight;
         PI_DIRLIGHT dirlight;
+        PI_POINTLIGHT ptlight;
     };
 
     // PI_SPOTLIGHT maybe to be defined later... I don't think I want it now
 
     cbuffer PI_LIGHTS: register( b1 ) {
+        uint NUM_DIRLIGHTS;
+        uint NUM_POINTLIGHTS;
+        uint2 _padding;
         PI_LIGHTGROUP LIGHTS[MAX_COMBINED_LIGHTS];
     };
 #endif
@@ -52,7 +55,11 @@
 struct PI_VSINPUT
 {
     float4 vpos: POSITION0;
+#ifdef WORLDEFFECT_LIGHTING
+    float4 vnormal: COLOR0;
+#else
     float4 vcol: COLOR0;
+#endif
 
     float4x4 itransform: POSITION1;
     float4 ialbedo: COLOR1;
@@ -65,6 +72,10 @@ struct PI_GSINPUT
 struct PI_PSINPUT
 {
     float4 color: COLOR0;
+#ifdef WORLDEFFECT_LIGHTING
+    float3 normal: NORMAL0;
+    float3 worldpos: POSITION0;
+#endif
 
     float4 pos: SV_Position;
 };
@@ -72,7 +83,10 @@ struct PI_PSINPUT
 cbuffer PI_CBUFFER: register(b0)
 {
     float4x4 view_proj;
+
+    float3 c_ambient; // Only used when lighting is on
 };
+
 
 PI_PSINPUT VSmain(PI_VSINPUT input)
 {
@@ -80,14 +94,46 @@ PI_PSINPUT VSmain(PI_VSINPUT input)
     vpos = mul(input.itransform, vpos);
 
     PI_PSINPUT output;
-    output.color = input.vcol * input.ialbedo;
     output.pos = mul(view_proj, vpos);
-
-    //output.pos = float4(input.vpos, 1.0f);
+    output.color = input.ialbedo;
+#ifdef WORLDEFFECT_LIGHTING
+    output.normal = input.vnormal;
+    output.worldpos = vpos;
+#else
+    output.color *= input.vcol;
+#endif
     return output;
 }
 
+
 float4 PSmain(PI_PSINPUT input): SV_Target
 {
-    return input.color;
+    float4 color = input.color;
+#ifdef WORLDEFFECT_LIGHTING
+    {
+        float3 lcol = c_ambient; 
+
+        for (uint i = 0; i < NUM_DIRLIGHTS; i++) {
+            const PI_DIRLIGHT light = LIGHTS[i].dirlight;
+            float diffuse = dot(light.direction.xyz, -input.normal);
+            diffuse = max(diffuse, 0.0);
+
+            lcol += diffuse * light.color.rgb * light.color.a;
+        }
+        for (uint i = 0; i < NUM_POINTLIGHTS; i++) {
+            const PI_POINTLIGHT light = LIGHTS[i].ptlight;
+            float3 direction = light.position.xyz - input.worldpos;
+            direction = normalize(direction);
+            float diffuse = dot(direction, input.normal);
+            diffuse = max(diffuse, 0.0);
+
+            lcol += diffuse * light.color.rgb * light.color.a;
+        }
+
+        color.rgb *= lcol;
+    }    
+#endif
+    return color;
 }
+
+//

@@ -133,6 +133,7 @@ private:
     void end_scene() noexcept;
 
     void submit_mesh(PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEND_INSTBUFFER, unsigned instance_count) noexcept;
+    void update_lights(PI_HRENDERBACKEND_SCENE hscene, PI_LIGHTTYPE type, unsigned update_start, unsigned update_count, const PI_LIGHT lights[], unsigned full_light_count) noexcept;
 private:
     ID3D10Device* m_dxdevice = NULL;
     IDXGISwapChain* m_dxswapchain = NULL;
@@ -179,7 +180,12 @@ struct pi_D3D10Scene
 {
     ~pi_D3D10Scene() noexcept;
 
-    ID3D10Buffer* dxcbvbuffer = NULL; // Constant buffer
+    ID3D10Buffer* dxcbvbuffer = NULL; // Main constant buffer
+        /* When lighting is on... */
+    ID3D10Buffer* dxcblightbuffer = NULL;
+    ID3D10Buffer* dxcblightstagingbuffer = NULL;
+    unsigned last_dirlightcount = 0;
+    unsigned last_ptlightcount = 0;
 };
 
 struct pi_D3D10Mesh

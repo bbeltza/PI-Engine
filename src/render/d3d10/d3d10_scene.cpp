@@ -45,16 +45,23 @@ void pi_D3D10Backend::update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const PI_M
     COMCHECKCALL(hscene->dxcbvbuffer->Map(D3D10_MAP_WRITE_DISCARD, 0, reinterpret_cast<void**>(&psceneenv)));
     PI_ASSERT(SUCCEEDED(hr));
         psceneenv->vpmatrix = *vpmatrix;
+        psceneenv->ambient = PI_VECTOR3{ 0.045f, 0.04f, 0.05f };
     hscene->dxcbvbuffer->Unmap();
 }
 
 void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
 {
     if (hscene != m_lastscene) {
-        ID3D10Buffer* const buffers[] = {
+        ID3D10Buffer* const vsbuffers[] = {
             hscene ? hscene->dxcbvbuffer : NULL
         };
-        m_dxdevice->VSSetConstantBuffers(0, PI_ARRAYSIZE(buffers), buffers);
+        ID3D10Buffer* const psbuffers[] = {
+            vsbuffers[0],
+            hscene ? hscene->dxcblightbuffer : NULL
+        };
+        m_dxdevice->VSSetConstantBuffers(0, PI_ARRAYSIZE(vsbuffers), vsbuffers);
+        m_dxdevice->PSSetConstantBuffers(0, PI_ARRAYSIZE(psbuffers), psbuffers);
+        
         m_lastscene = hscene;
     }
 }
@@ -91,4 +98,110 @@ void pi_D3D10Backend::end_scene() noexcept {
     COMRELEASESAFE(dxrender);
 
     m_dxswapchain->Present(1, 0);
+}
+
+//
+
+#include "shader_properties.h"
+
+struct PI_LIGHTGROUP {
+    PI_DIRECTIONAL_LIGHT dirlight;
+    PI_POINT_LIGHT ptlight;
+};
+
+struct PI_LIGHTCB {
+    unsigned num_dirlights;
+    unsigned num_ptlights;
+    unsigned _padding[2];
+
+    PI_LIGHTGROUP lights[MAX_COMBINED_LIGHTS];
+};
+
+void pi_D3D10Backend::update_lights(PI_HRENDERBACKEND_SCENE hscene, PI_LIGHTTYPE type, unsigned update_start, unsigned update_count, const PI_LIGHT lights[], unsigned full_light_count) noexcept
+{
+    HRESULT hr;
+
+    if (!hscene->dxcblightbuffer) {
+        PI_ASSERT(hscene->dxcblightstagingbuffer == NULL);
+        PI_ASSERT(update_start == 0); // The first call to `update_start` should update from the beginning of the light buffer
+        
+        D3D10_BUFFER_DESC desc = {};
+        desc.ByteWidth = sizeof(PI_LIGHTCB);
+        desc.Usage = D3D10_USAGE_DEFAULT;
+        desc.BindFlags = D3D10_BIND_CONSTANT_BUFFER;
+        desc.CPUAccessFlags = 0;
+        COMCHECKCALL(m_dxdevice->CreateBuffer(&desc, NULL, &hscene->dxcblightbuffer));
+
+        desc.Usage = D3D10_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+        COMCHECKCALL(m_dxdevice->CreateBuffer(&desc, NULL, &hscene->dxcblightstagingbuffer));
+    }
+
+    PI_ASSUME(hscene->dxcblightbuffer != NULL);
+    PI_ASSUME(hscene->dxcblightstagingbuffer != NULL);
+
+    PI_LIGHTCB* plcb = NULL;
+    COMCHECKCALL(hscene->dxcblightstagingbuffer->Map(D3D10_MAP_WRITE, 0, reinterpret_cast<void**>(&plcb)));
+        switch (type) {
+            case PI_LIGHT_DIRECTIONAL:
+                if (hscene->last_dirlightcount != full_light_count)
+                    plcb->num_dirlights = full_light_count;
+                for (unsigned i = 0, ii = update_start; i < update_count; i++, ii++) {
+                    plcb->lights[ii].dirlight = lights[i].directional;
+                }
+                break;
+            case PI_LIGHT_POINT:
+                if (hscene->last_ptlightcount != full_light_count)
+                    plcb->num_ptlights = full_light_count;
+                for (unsigned i = 0, ii = update_start; i < update_count; i++, ii++) {
+                    plcb->lights[ii].ptlight = lights[i].point;
+                }
+                break;
+            default:
+                PI_ASSUME(0);
+        }
+    hscene->dxcblightstagingbuffer->Unmap();
+
+    UINT firstx = UINT_MAX;
+    switch (type) {
+        case PI_LIGHT_DIRECTIONAL: if (hscene->last_dirlightcount != full_light_count) {
+            firstx = offsetof(PI_LIGHTCB, num_dirlights);
+            hscene->last_dirlightcount = full_light_count;
+        } break;
+        case PI_LIGHT_POINT: if (hscene->last_ptlightcount != full_light_count) {
+            firstx = offsetof(PI_LIGHTCB, num_ptlights);
+            hscene->last_ptlightcount = full_light_count;
+        } break;
+        default: PI_ASSUME(0);
+    }
+
+    if (firstx != UINT_MAX) {
+        D3D10_BOX box;
+        box.left = firstx;
+        box.right = firstx + sizeof(unsigned);
+        box.top = 0;
+        box.bottom = 1;
+        box.front = 0;
+        box.back = 1;
+        
+        m_dxdevice->CopySubresourceRegion(
+                hscene->dxcblightbuffer, 0,
+                firstx, 0, 0,
+                hscene->dxcblightstagingbuffer, 0,
+                &box);
+    }
+    
+    D3D10_BOX box;
+    box.left = offsetof(PI_LIGHTCB, lights) + update_start*sizeof(PI_LIGHTGROUP);
+    box.right = box.left + update_count*sizeof(PI_LIGHTGROUP);
+    box.top = 0;
+    box.bottom = 1;
+    box.front = 0;
+    box.back = 1;
+    m_dxdevice->CopySubresourceRegion(
+        hscene->dxcblightbuffer, 0,
+        box.left, 0, 0,
+        hscene->dxcblightstagingbuffer, 0,
+        &box);
 }

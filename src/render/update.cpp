@@ -51,6 +51,63 @@ bool PI_SYSTEM_SCENE::_update_dirty() noexcept
         this->dirty.viewproj = false;
     }
 
+    if (this->m_dirlight_count_dirty) {
+        m_lights_dirty.clear();
+        m_lights_dirty.resize(m_dirlight_count_dirty);
+        for (unsigned i = 0, ii = m_dirlight_start_dirty; i < m_dirlight_count_dirty; i++, ii++) {
+            m_lights_dirty.at(i).directional = m_dirlight_buffer.at(ii);
+        }
+
+        auto fullcount = static_cast<unsigned>(m_dirlight_buffer.size());
+        backend.callbacks.pfn_update_lights(
+                hbackend,
+                hscenebackend,
+                PI_LIGHT_DIRECTIONAL,
+                m_dirlight_start_dirty,
+                m_dirlight_count_dirty,
+                m_lights_dirty.data(),
+                fullcount
+            );
+    }
+    else if (this->m_dirlight_start_dirty == -1) {
+        auto fullcount = static_cast<unsigned>(m_dirlight_buffer.size());
+        backend.callbacks.pfn_update_lights(
+                hbackend,
+                hscenebackend,
+                PI_LIGHT_DIRECTIONAL,
+                0, 0, NULL,
+                fullcount
+            );
+    }
+    if (this->m_ptlight_count_dirty) {
+        m_lights_dirty.clear();
+        m_lights_dirty.resize(m_ptlight_count_dirty);
+        for (unsigned i = 0, ii = m_ptlight_start_dirty; i < m_ptlight_count_dirty; i++, ii++) {
+            m_lights_dirty.at(i).point = m_ptlight_buffer.at(ii);
+        }
+
+        auto fullcount = static_cast<unsigned>(m_ptlight_buffer.size());
+        backend.callbacks.pfn_update_lights(
+                hbackend,
+                hscenebackend,
+                PI_LIGHT_POINT,
+                m_ptlight_start_dirty,
+                m_ptlight_count_dirty,
+                m_lights_dirty.data(),
+                fullcount
+            );
+    }
+    else if (this->m_ptlight_start_dirty == -1) {
+        auto fullcount = static_cast<unsigned>(m_ptlight_buffer.size());
+        backend.callbacks.pfn_update_lights(
+                hbackend,
+                hscenebackend,
+                PI_LIGHT_POINT,
+                0, 0, NULL,
+                fullcount
+            );
+    }
+
     return true;
 }
 

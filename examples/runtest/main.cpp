@@ -49,6 +49,9 @@ private:
     
     PI_HMESH m_hcube;
     PI_HINSTANCE m_hinstances[8];
+
+    PI_HLIGHT m_hlight;
+    PI_HLIGHT m_hcamlight;
 private:
     PI_VECTOR4 m_viewangle = { 0.0f, 0.0f, 0.0f, 2.0f };
     float m_viewrealdistance = m_viewangle.w;
@@ -242,6 +245,15 @@ gaem_t::gaem_t(bool& fail):
         m_hinstances[i] = pi_add_scene_mesh(m_hscene, m_hcube, &INSTANCES[i]);
     }
 
+    PI_LIGHT light = {
+        PI_DIRECTIONAL_LIGHT{
+            PI_VECTOR3X{ 0.0f, -1.0f, 0.0f },
+            PI_VECTOR4{ 0.85f, 0.79f, 1.0f, 1.0f }
+        }
+    };
+    m_hlight = pi_add_light(m_hscene, PI_LIGHT_DIRECTIONAL, &light);
+    m_hcamlight = pi_add_light(m_hscene, PI_LIGHT_POINT, &light);
+
     pi_set_scene_clear_color(m_hscene, 1.0f, 0.95f, 0.35f, 1.0f);
     pi_enable_scene(m_hscene, -1);
 }
@@ -331,12 +343,19 @@ bool gaem_t::update()
         pi_matrix_rotate_x(&roty, m_viewangle.x);
         eye = pi_mulv_4x4(eye, pi_mul_4x4(&rotx, &rotx, &roty));
 
-        PI_VECTOR4 up = *(PI_VECTOR4*)rotx.m[1];
+        PI_VECTOR4 up = rotx.v.y;
 
         PI_MATRIX_4X4 view;
         pi_look_at(&view, eye, CENTER_VECTOR, up);
 
         pi_set_scene_view(m_hscene, &view);
+
+        PI_LIGHT look_light;
+        look_light.point = {
+               eye, 
+                PI_VECTOR4{ 0.7f, 0.45f, 1.0f, 1.0f }
+            };
+        pi_update_light(m_hcamlight, &look_light);
     }
     return true;
 }

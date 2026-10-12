@@ -7,14 +7,19 @@
 typedef struct PI_WORLDENV_IMPL *PI_HWORLDENV;
 typedef struct PI_MESH_IMPL *PI_HMESH;
 typedef struct PI_INSTANCE_IMPL *PI_HINSTANCE;
+typedef struct PI_LIGHT_IMPL *PI_HLIGHT;
 
 #define PI_HMESH_DESTRUCTOR pi_destroy_mesh
 #define PI_HWORLDENV_DESTRUCTOR pi_release_worldenvironment
 #define PI_HINSTANCE_DESTRUCTOR pi_remove_scene_mesh
+#define PI_HLIGHT_DESTRUCTOR pi_remove_light
 
 typedef struct PI_VERTEX {
     PI_VECTOR3 pos;
-    PI_VECTOR3 col;
+    union {
+        PI_VECTOR3 col;
+        PI_VECTOR3 normal;
+    };
 } PI_VERTEX;
 
 typedef struct PI_INSTANCE {
@@ -28,6 +33,32 @@ typedef struct PI_INSTANCE {
     PI_VECTOR4 col
         PI_MEMBER_DEFAULT({ 1.0f, 1.0f, 1.0f, 1.0f });
 } PI_INSTANCE;
+
+typedef struct PI_DIRECTIONAL_LIGHT {
+    PI_VECTOR3X direction;
+    PI_VECTOR4 color;
+} PI_DIRECTIONAL_LIGHT;
+
+typedef struct PI_POINT_LIGHT {
+    PI_VECTOR4 position;
+    PI_VECTOR4 color;
+    float range;
+    float attenuation;
+
+    float _reserved1;
+    float _reserved2;
+} PI_POINT_LIGHT;
+
+typedef union PI_LIGHT {
+    PI_DIRECTIONAL_LIGHT directional;
+    PI_POINT_LIGHT point;
+} PI_LIGHT;
+
+typedef enum PI_LIGHTTYPE {
+    PI_LIGHT_NONE = 0,
+    PI_LIGHT_DIRECTIONAL = 1,
+    PI_LIGHT_POINT = 2
+} PI_LIGHTTYPE;
 
 typedef enum PI_INDEX {
     PI_INDEX_UNKNOWN = 0,
@@ -166,6 +197,11 @@ PI_EXTERN_C PI_HINSTANCE pi_add_scene_mesh(PI_HSCENE hscene, PI_HMESH hmesh, con
 PI_EXTERN_C void pi_remove_scene_mesh(PI_HINSTANCE hmeshinst);
 PI_EXTERN_C bool pi_update_mesh_instance(PI_HINSTANCE hmeshinst, const PI_INSTANCE* instance);
 
+PI_EXTERN_C PI_HLIGHT pi_add_light(PI_HSCENE hscene, PI_LIGHTTYPE type, const PI_LIGHT* initial_parameters);
+PI_EXTERN_C void pi_remove_light(PI_HLIGHT hlight);
+PI_EXTERN_C bool pi_update_light(PI_HLIGHT hlight, const PI_LIGHT* light);
+
+
 #endif
 
 /* Include backend part! */
@@ -209,6 +245,8 @@ typedef void (*PI_PFN_BACKEND_RENDER_END_SCENE)(PI_HRENDERBACKEND hbackend);
 
 typedef void (*PI_PFN_BACKEND_RENDER_SUBMIT_MESH)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned instance_count);
 
+typedef void (*PI_PFN_BACKEND_RENDER_UPDATE_LIGHTS)(PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, PI_LIGHTTYPE type, unsigned update_start, unsigned update_count, const PI_LIGHT lights[], unsigned full_light_count);
+
 typedef struct PI_BACKEND_RENDER_CALLBACKS {
     PI_PFN_BACKEND_RENDER_CLOSE pfn_close;
 
@@ -231,13 +269,15 @@ typedef struct PI_BACKEND_RENDER_CALLBACKS {
     PI_PFN_BACKEND_RENDER_END_SCENE pfn_end_scene;
 
     PI_PFN_BACKEND_RENDER_SUBMIT_MESH pfn_submit_mesh;
+
+    PI_PFN_BACKEND_RENDER_UPDATE_LIGHTS pfn_update_lights;
 } PI_BACKEND_RENDER_CALLBACKS;
 
 #define ASSERT_BACKEND_CALLBACKS_EX(callbacks, assertfunc) \
                                         do {                                                                                          \
                                             const void* const* p = (const void* const*)&(callbacks);                                  \
                                             for (size_t i = 0; i < (sizeof(PI_BACKEND_RENDER_CALLBACKS) / sizeof(void*)); i++, p++) { \
-                                                assertfunc(*p);                                                                       \
+                                                assertfunc(*p && "Backend callback check failed! Check again whether every callback is set properly in your backend.");                                                                       \
                                             }                                                                                         \
                                         } while (0)
 
@@ -283,6 +323,8 @@ typedef struct PI_BACKEND_RENDER {
 /* Structure data for the uniform scene buffer for backends to use */
 typedef struct PI_SCENEENV {
     PI_MATRIX_4X4 vpmatrix;
+
+    PI_VECTOR3 ambient;
 } PI_SCENEENV;
 
 #endif
