@@ -21,7 +21,7 @@
 #elif _MSC_VER
     #define PI_ASSUME(c) __assume(c)
 #elif __GNUC__
-    #define PI_ASSUME(c) __attribute__((assume(c)))
+    #define PI_ASSUME(c) do { if (!(c)) __builtin_unreachable(); } while (0)
 #else
     #define PI_ASSUME(c)
 #endif

@@ -31,8 +31,6 @@ PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEN
         hbackend->ubofsoffset = PI_ALIGN(sizeof(PI_SCENEENV), uboalign);
         hbackend->maxuboptlights = PI_MIN(ubosize/sizeof(PI_POINT_LIGHT), 1024); 
         hbackend->maxubodirlights = PI_MIN(ubosize/sizeof(PI_DIRECTIONAL_LIGHT), 1024); 
-
-        printf("ubosize: %d ; uboalign: %d\n", ubosize, uboalign);
     }
 
     const char* const _defines[NUM_SHADERS] = {

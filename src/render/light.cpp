@@ -2,6 +2,8 @@
 
 #include <piengine/pi_math.h>
 
+#include <cstdio>
+
 template <typename Vec>
 void update_lights_dirty(Vec& v, unsigned lindex, unsigned& start_dirty, unsigned& count_dirty)
 {
