@@ -1,6 +1,7 @@
 #include "render_gl.h"
 
 #include <piengine/pi_math.h>
+#include <piengine/pi_core.h>
 
 PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEND_RENDER_DESC* pdesc)
 {
@@ -8,7 +9,8 @@ PI_EXTERN_C bool fn_render_gl_initialize(pi_GLbackend* hbackend, const PI_BACKEN
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    hbackend->glcontext = SDL_GL_CreateContext(pdesc->sdl_window);
+    SDL_Window* sdlwnd = pi_get_window_sdl_handle(pdesc->hwindow);
+    hbackend->glcontext = SDL_GL_CreateContext(sdlwnd);
     if (!hbackend->glcontext) {
         return false;
     }

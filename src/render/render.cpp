@@ -62,10 +62,10 @@ template <typename Alloc>
 using propagate_on_container_move_assignment = typename std::allocator_traits<Alloc>::propagate_on_container_move_assignment;
 
 PI_SYSTEM_RENDER::PI_SYSTEM_RENDER(PI_ENGINEDATA* hengine, bool& succeed) noexcept:
-    m_sdlwnd(hengine->sdlwnd)
+    m_hwnd(&hengine->main_wnd)
 {
     PI_BACKEND_RENDER_DESC backenddesc = {
-        hengine->sdlwnd
+        m_hwnd
     };
 
     auto backend = chosen_backend;

@@ -14,6 +14,25 @@ PI_DECLARE_RAIIH(PI_HMESH);
 PI_DECLARE_RAIIH(PI_HINSTANCE);
 PI_DECLARE_RAIIH(PI_HLIGHT);
 
+struct GAME_PLAYER
+{
+    GAME_PLAYER(PI_HGAME hgame, const PI_VECTOR3& position) noexcept;
+    void update(float dt, const PI_VECTOR2& direction) noexcept;
+
+    PI_VECTOR3X get_view_position() noexcept;
+
+    float yaw = 0.0f, pitch = 0.0f;
+    PI_VECTOR3X look;
+    PI_VECTOR3X forward;
+    PI_VECTOR3X right;
+    PI_HRIGIDBODY_RAII hrigidbody;
+
+    bool dirty_yawpitch : 1;
+    bool dirty_view : 1;
+private:
+    float m_bobbytime = 0.0f;
+};
+
 struct GAME_CUBE {
     GAME_CUBE(PI_HGAME hgame, const PI_VECTOR3& position, const PI_VECTOR3& scale, PI_HMESH hmesh);
 
@@ -39,8 +58,11 @@ private:
     PI_HWORLDENV_RAII hworldenv;
     PI_HSCENE_RAII hscene;
 
-    PI_HMESH_RAII hcubemesh;
+    GAME_PLAYER player;
+    PI_VECTOR2 player_direction = {};
 
+    PI_HMESH_RAII hcubemesh;
+        
     GAME_CUBE ground;
     GAME_CUBE falling_cube;
 
@@ -53,13 +75,7 @@ private:
     bool k_front : 1;
     bool k_back : 1;
 
-    bool dirty_look : 1;
     bool dirty_projection : 1;
-bool dirty_view : 1;
-
-    PI_VECTOR2 camera_look = { 0.0f, 0.0f };
-    PI_VECTOR4 camera_eye = { 0.0f, 0.0f, -2.0f };
-    PI_MATRIX_4X4 camera_dir;
 
     unsigned wnd_w, wnd_h;
 private:

@@ -38,6 +38,6 @@ endmacro()
 
 BUILD_EXAMPLE(runtest "main.cpp")
 BUILD_EXAMPLE(modeltest "main.cpp" "tiny_obj.cc")
-BUILD_EXAMPLE(rigidbodies "main.cpp" "game.cpp" "cube.cpp")
+BUILD_EXAMPLE(rigidbodies "main.cpp" "game.cpp" "player.cpp" "cube.cpp")
 
 COPY_ASSET(modeltest "guitarmodel.obj")

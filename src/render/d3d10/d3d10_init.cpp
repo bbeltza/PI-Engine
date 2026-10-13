@@ -1,7 +1,6 @@
 #include "render_d3d10.hpp"
 
-#include <SDL3/SDL_video.h>
-
+#include <piengine/pi_core.h>
 #include <cstdio>
 
 struct SHADER_BYTECODE {
@@ -75,18 +74,9 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
     PI_ASSERT(_s_pD3D10CreateDevice);
     
 
-    HWND hwnd = NULL;
-    {
-        SDL_PropertiesID sdl_windowproperties = SDL_GetWindowProperties(desc.sdl_window);
-        if (!sdl_windowproperties) {
-            std::printf("SDL_GetWindowProperties failed: \"%s\"\n", SDL_GetError());
-            return false;
-        }
-        void* phwnd = SDL_GetPointerProperty(sdl_windowproperties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-        if (!phwnd) {
-            return false;
-        }
-        hwnd = static_cast<HWND>(phwnd);
+    HWND hwnd = static_cast<HWND>(pi_get_window_native_handle(desc.hwindow));
+    if (!hwnd) {
+        return false;
     }
 
     HRESULT hr;

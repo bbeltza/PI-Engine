@@ -219,6 +219,7 @@ PI_EXTERN_C bool pi_set_light_properties(PI_HSCENE hscene, const PI_LIGHT_PROPER
 #if defined(PI_INCLUDE_BACKEND_API) && !defined(PI_RENDER_BACKEND_H)
 #define PI_RENDER_BACKEND_H
 
+
 typedef struct PI_RENDER_CONFIGURE {
     unsigned w;
     unsigned h;
@@ -312,9 +313,9 @@ typedef struct PI_BACKEND_RENDER_STRUCTURES {
             DEFINE_BACKEND_STRUCTURE(structures, INSTBUFFER)
 
 // Declare SDL_Widnow to avoid including "SDL_video.h" (shouldn't it be fine though to include it?)
-struct SDL_Window;
+struct PI_WND_IMPL;
 typedef struct PI_BACKEND_RENDER_DESC {
-    struct SDL_Window* sdl_window;
+    struct PI_WND_IMPL* hwindow;
 } PI_BACKEND_RENDER_DESC;
 
 typedef struct PI_BACKEND_RENDER_INFO {

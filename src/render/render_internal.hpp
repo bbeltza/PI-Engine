@@ -288,7 +288,7 @@ private:
 
     PI_RENDER_CONFIGURE m_configureinfo{ };
 
-    SDL_Window* m_sdlwnd = NULL;
+    PI_HWND m_hwnd = NULL;
 private:
     static bool _s_event_hook(void* userdata, PI_EVENT* event) noexcept;
 };

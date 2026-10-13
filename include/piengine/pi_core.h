@@ -6,7 +6,57 @@
 /* Windowing API */
 typedef struct PI_WND_IMPL PI_WND_IMPL, *PI_HWND;
 
+#define PI_HWND_DESTRUCTOR pi_destroy_window
+
+typedef enum PI_NATIVE_WINDOW_TYPE
+{
+    PI_NATIVEWINDOW_UNKNOWN = 0,
+
+    PI_NATIVEWINDOW_WIN32 = 1,
+} PI_NATIVE_WINDOW_TYPE;
+
+typedef enum PI_WINDOW_FLAG
+{
+    PI_WINDOWFLAG_RESIZABLE = 0x00000001,
+    PI_WINDOWFLAG_HIDDEN = 0x00000002,
+    PI_WINDOWFLAG_FULLSCREEN = 0x00000004,
+
+    PI_WINDOWFLAG_OPENGL = 0x00001000,
+    //PI_WINDOWFLAG_VULKAN = 0x00002000,
+    //PI_WINDOWFLAG_METAL =  0x00004000,
+} PI_WINDOW_FLAG;
+
+typedef uint32_t PI_WINDOW_FLAGS;
+
+typedef struct PI_WINDOW_PARAMETERS {
+    const char* title;
+    uint32_t width;
+    uint32_t height;
+    int32_t x;
+    int32_t y;
+
+    PI_WINDOW_FLAGS flags;
+} PI_WINDOW_PARAMETERS;
+
 PI_EXTERN_C PI_HWND pi_get_main_window(PI_HGAME hgame);
+PI_EXTERN_C PI_HWND pi_create_window(PI_HGAME hgame, const PI_WINDOW_PARAMETERS* parameters);
+PI_EXTERN_C void pi_destroy_window(PI_HWND hwnd);
+
+PI_EXTERN_C PI_HGAME pi_get_window_game(PI_HWND hwnd);
+PI_EXTERN_C PI_HWND pi_get_window_fromID(uint32_t id);
+PI_EXTERN_C uint32_t pi_get_window_ID(PI_HWND hwnd);
+
+PI_EXTERN_C void* pi_get_window_sdl_handle(PI_HWND hwnd);
+PI_EXTERN_C void* pi_get_window_native_handle(PI_HWND hwnd); // How do you query the native handle type??? (An enum? -> PI_NATIVE_WINDOW_TYPE)
+
+PI_EXTERN_C bool pi_show_window(PI_HWND hwnd);
+PI_EXTERN_C bool pi_hide_window(PI_HWND hwnd);
+
+PI_EXTERN_C int* pi_get_window_logical_size(int dst[2], PI_HWND hwnd);
+PI_EXTERN_C int* pi_get_window_physical_size(int dst[2], PI_HWND hwnd);
+
+PI_EXTERN_C bool pi_lock_window_cursor(PI_HWND hwnd, bool lock);
+PI_EXTERN_C bool pi_is_window_cursor_locked(PI_HWND hwnd);
 
 /* Input API */
 

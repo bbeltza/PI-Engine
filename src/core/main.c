@@ -5,6 +5,7 @@
 #include <SDL3/SDL_assert.h>
 #include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_system.h>
+#include <SDL3/SDL_mouse.h>
 
 #define CHECK_CALLBACK(c) PI_ASSERT(c != NULL)
 
@@ -80,18 +81,28 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
     PI_ENGINEDATA* engine = PI_ALLOC(engine_size + gamesize, PI_ALLOC_ZERO);
     PI_ASSERT(engine != NULL);
 
-    SDL_WindowFlags windowflags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
-    #if PI_HAVE_GL
-        windowflags |= SDL_WINDOW_OPENGL;
-    #endif
     
     engine->dt_prev = dt_start;
     engine->running = true;
     engine->appcallbacks = *appinfo->callbacks;
-    engine->sdlwnd = SDL_CreateWindow(appinfo->name, 800, 600, windowflags);
 
-    if (!engine->sdlwnd) {
-        goto QUIT_FAIL;
+    SDL_PropertiesID wndproperties;
+    {
+        PI_WINDOW_PARAMETERS params = {
+            appinfo->name,
+            800, 600,
+            -1, -1,
+            PI_WINDOWFLAG_RESIZABLE | PI_WINDOWFLAG_HIDDEN
+            #if PI_HAVE_GL
+                | PI_WINDOWFLAG_OPENGL
+            #endif
+        };
+        wndproperties = pi_init_engine_window(engine, &engine->main_wnd, &params);
+        if (!wndproperties) {
+            goto QUIT_FAIL;
+        }
+
+        
     }
 
     engine->sizeof_scene = sizeof(struct PI_SCENE_IMPL);
@@ -120,7 +131,8 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         goto QUIT_FAIL;
     }
 
-    SDL_ShowWindow(engine->sdlwnd);
+    SDL_SetPointerProperty(wndproperties, PI_SDLPROP_WINDOW_HGAME_PTR, hgame);
+    pi_show_window(&engine->main_wnd);
 
     { // Process existing events from the queue added before AddEventWatch gets called.
         SDL_PumpEvents();
@@ -183,6 +195,10 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
     SDL_RemoveEventWatch(_event_watch, hgame);
     PI_FREE(engine->eventhooks);
 
+    while (engine->wnd_head) {
+        pi_deinit_engine_window(engine->wnd_head);
+    }
+    pi_deinit_engine_window(&engine->main_wnd);
 #ifndef NDEBUG
     memset(engine, 0xCC, engine_size + gamesize);
 #endif
@@ -208,14 +224,19 @@ static bool _event_watch(void* userdata, SDL_Event* event) {
     PI_EVENT pievent;
     pi_map_sdl_event(&pievent, event);
 
+    PI_HWND hwnd = pievent.window.hwindow;
+    if (pi_get_window_game(hwnd) != hgame) { // All event type `window` members live at the same location
+                                                                        // Might want to move it to the base PI_EVENT struct.
+        return false;
+    }
+
     if (pievent.type == PI_EVENT_TOUCH) {
-        int w = 1;
-        int h = 1;
-        SDL_GetWindowSizeInPixels(engine->sdlwnd, &w, &h);
-        pievent.touch.x *= w;
-        pievent.touch.y *= h;
-        pievent.touch.delta_x *= w;
-        pievent.touch.delta_y *= h;
+        int wh[2] = { 1, 1 };
+        pi_get_window_physical_size(wh, hwnd);
+        pievent.touch.x *= wh[0];
+        pievent.touch.y *= wh[1];
+        pievent.touch.delta_x *= wh[0];
+        pievent.touch.delta_y *= wh[1];
     }
 
     for (unsigned i = 0; i < engine->eventhook_count; i++) {

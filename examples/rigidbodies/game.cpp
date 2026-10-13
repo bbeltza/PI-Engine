@@ -12,6 +12,8 @@ PI_GAME::PI_GAME():
     hworldenv{ create_worldenv(this) },
     hscene{ create_scene(this) },
 
+    player{ this, { 0.0f, 2.0f, 0.0f } },
+
     hcubemesh{ pi_create_mesh_indexed(this,
             PI_ARRAYSIZE(common::CUBE_VERTICES), common::CUBE_VERTICES,
             PI_ARRAYSIZE(common::CUBE_INDICES), common::CUBE_INDICES,
@@ -21,10 +23,7 @@ PI_GAME::PI_GAME():
     ground{ this, { 0.5f, -2.0f, 1.0f }, { 4.0f, 1.0f, 5.0f }, hcubemesh },
     falling_cube{ this, { 0.0f, 0.0f, 2.0f }, {1.0f, 1.0f, 1.0f }, hcubemesh },
 
-    hlight{ create_light(hscene) },
-
-    dirty_look{ true },
-    dirty_view{ true }
+    hlight{ create_light(hscene) }
 {
     if (!hscene) {
         return;
@@ -44,6 +43,9 @@ PI_GAME::PI_GAME():
     cube_properties->force.x = 1.0f;
     PI_PHYSICS_SCENE_PROPERTIES* pisceneproperties = pi_get_physics_scene_properties(hscene);
     pisceneproperties->gravity = 2.0f;
+
+    PI_HWND hwnd = pi_get_main_window(this);
+    pi_lock_window_cursor(hwnd, true);
 }
 
 bool PI_GAME::app_event(PI_EVENT& event) noexcept
@@ -71,6 +73,8 @@ bool PI_GAME::app_event(PI_EVENT& event) noexcept
 
 bool PI_GAME::app_update() noexcept
 {
+    float dt = pi_get_runtime_dtf(this);
+    player.update(dt, player_direction);
     _update_dirty();
     return true;
 }
@@ -81,35 +85,35 @@ bool PI_GAME::_handle_key(const PI_KEYEVENT& event) noexcept
 {
     const auto key_vector = [](PI_PRESSMODE mode) -> float {
         float v = (mode == PI_PRESS_DOWN) ? 1.0f : (mode == PI_PRESS_UP) ? -1.0f : 0.0f;
-        return v * 1.3f;
+        return v;
     };
 
-    PI_RIGIDBODY_PROPERTIES* rbproperties = pi_get_rigid_body_properties(falling_cube.hrigidbody);
-    PI_ASSERT(rbproperties != NULL);
     switch (event.code)
     {
         case PI_KEYCODE_A:
-            rbproperties->velocity.x -= key_vector(event.press);
+            player_direction.x -= key_vector(event.press);
             break;
         case PI_KEYCODE_D:
-            rbproperties->velocity.x += key_vector(event.press);
+            player_direction.x += key_vector(event.press);
             break;
         case PI_KEYCODE_W:
-            rbproperties->velocity.z += key_vector(event.press);
+            player_direction.y += key_vector(event.press);
             break;
         case PI_KEYCODE_S:
-            rbproperties->velocity.z -= key_vector(event.press);
-            break;
-        case PI_KEYCODE_E:
-            rbproperties->velocity.y += key_vector(event.press);
-            break;
-        case PI_KEYCODE_Q:
-            rbproperties->velocity.y -= key_vector(event.press);
+            player_direction.y -= key_vector(event.press);
             break;
         
         case PI_KEYCODE_SPACE:
             if (event.press == PI_PRESS_DOWN) {
+                PI_RIGIDBODY_PROPERTIES* rbproperties = pi_get_rigid_body_properties(falling_cube.hrigidbody);
                 rbproperties->force.y = 2.0f;
+            }
+            break;
+
+        case PI_KEYCODE_ESCAPE:
+            if (event.press == PI_PRESS_DOWN) {
+                bool lock = pi_is_window_cursor_locked(event.hwindow);
+                pi_lock_window_cursor(event.hwindow, !lock);
             }
             break;
         default:
@@ -121,24 +125,19 @@ bool PI_GAME::_handle_key(const PI_KEYEVENT& event) noexcept
 
 bool PI_GAME::_handle_motion(const PI_MOTIONEVENT& event) noexcept
 {
-    constexpr float SENSIBILITY = 0.01f;
+    constexpr float SENSIBILITY = 0.4_degf;
 
-    if (event.state & PI_MSTATE_RIGHT) {
-        dirty_look = true;
-        camera_look.x += event.delta_y * SENSIBILITY,
-        camera_look.y += event.delta_x * SENSIBILITY;
+    if (pi_is_window_cursor_locked(event.hwindow)) {
+        player.dirty_yawpitch = true;
+        player.pitch += event.delta_y * SENSIBILITY,
+        player.yaw += event.delta_x * SENSIBILITY;
     }
     return true;
 }
 
 bool PI_GAME::_handle_wheel(const PI_WHEELEVENT& event) noexcept
 {
-    dirty_view = true;
 
-    PI_VECTOR4 delta = { event.amnt_x, 0.0f, event.amnt_y };    
-    delta = pi_mulv_4x4(delta, &camera_dir);
-
-    camera_eye = pi_add_4(camera_eye, delta);
     return true;
 }
 
@@ -153,16 +152,6 @@ void PI_GAME::_update_dirty() noexcept
         pi_update_mesh_instance(falling_cube.hinstance, &falling_cube.instance);
     }
 
-    if (dirty_look) {
-        dirty_look = false;
-        dirty_view = true;
-
-        PI_MATRIX_4X4 m0, m1;
-        pi_matrix_rotate_y(&m0, camera_look.y);
-        pi_matrix_rotate_x(&m1, camera_look.x);
-        pi_mul_4x4(&camera_dir, &m0, &m1);
-    }
-
     if (dirty_projection) {
         dirty_projection = false;
 
@@ -170,13 +159,13 @@ void PI_GAME::_update_dirty() noexcept
         PI_MATRIX_4X4 m = pi_matrix_perspective(70_degf, ratio, 0.1f, 22.0f);
         pi_set_scene_projection(hscene, &m);
     }
-    if (dirty_view) {
-        dirty_view = false;
+    if (player.dirty_view) {
+        player.dirty_view = false;
         
         PI_MATRIX_4X4 m;
-        pi_look_along(&m, camera_eye,
-                    *(PI_VECTOR4*)camera_dir.m[2],
-                    *(PI_VECTOR4*)camera_dir.m[1]
+        pi_look_along(&m, player.get_view_position(),
+                    player.look,
+                    { 0.0f, 1.0f, 0.0f } 
                 );
         pi_set_scene_view(hscene, &m);
     }

@@ -48,11 +48,21 @@ typedef struct PI_SYSTEM_PHYSICS PI_SYSTEM_PHYSICS;
 
 typedef struct PI_EVENT_HOOK PI_EVENT_HOOK;
 
+struct PI_WND_IMPL
+{
+    PI_ENGINEDATA* engine;
+    PI_WND_IMPL* p_next;
+
+    SDL_Window* sdlwnd;
+    uint32_t id;
+};
+
 struct PI_ENGINEDATA {
     int running;
     PI_APPCALLBACKS appcallbacks;
 
-    SDL_Window* sdlwnd;
+    PI_WND_IMPL main_wnd;
+    PI_WND_IMPL* wnd_head;
 
     Uint64 dt_prev;
     Uint64 dt_value;
@@ -89,11 +99,6 @@ struct PI_EVENT_HOOK {
 
 /* Core engine implementation definitions */
 
-struct PI_WND_IMPL {
-    SDL_Window* sdlwnd;
-    // More stuff to come :eyes:
-};
-
 struct PI_SCENE_IMPL {
     struct PI_SCENE_IMPL* next;
     struct PI_SCENE_IMPL* prev;
@@ -121,6 +126,12 @@ struct PI_SCENE_IMPL {
   /* Internal event hook API for subsystems to use */
 PI_EXTERN_C bool pi_add_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_hook);
 PI_EXTERN_C bool pi_remove_engine_event_hook(PI_ENGINEDATA* engine, const PI_EVENT_HOOK* p_hook);
+
+#define PI_SDLPROP_WINDOW_HWND_PTR "PI.window.hwnd_ptr"
+#define PI_SDLPROP_WINDOW_HGAME_PTR "PI.window.hgame_ptr"
+
+PI_EXTERN_C SDL_PropertiesID pi_init_engine_window(PI_ENGINEDATA* engine, PI_WND_IMPL* wnd, const PI_WINDOW_PARAMETERS* parameters);
+PI_EXTERN_C void pi_deinit_engine_window(PI_WND_IMPL* wnd);
 
 #ifdef PI_CPP
     static_assert(sizeof(PI_ENGINEDATA::subsystems)/sizeof(void*) == SYSTEM_COUNT, "Subsystem count mismatch?");
