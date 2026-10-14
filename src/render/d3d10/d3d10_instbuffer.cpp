@@ -89,8 +89,10 @@ bool pi_D3D10Backend::update_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer
 
     m_dxdevice->CopySubresourceRegion(hinstbuffer->dxbuffer, 0, pos * sizeof(PI_INSTANCE), 0, 0, hinstbuffer->dxstagingbuffer, 0, &box );
     
-    box.left = box.right;
-    box.right = box.left + size * sizeof(PI_MATRIX_3X3);
-    m_dxdevice->CopySubresourceRegion(hinstbuffer->dxnormalbuffer, 0, pos * sizeof(PI_MATRIX_3X3), 0, 0, hinstbuffer->dxstagingbuffer, 0, &box );
+    if (normal_transform_data) {
+        box.left = box.right;
+        box.right = box.left + size * sizeof(PI_MATRIX_3X3);
+        m_dxdevice->CopySubresourceRegion(hinstbuffer->dxnormalbuffer, 0, pos * sizeof(PI_MATRIX_3X3), 0, 0, hinstbuffer->dxstagingbuffer, 0, &box );
+    }
     return true;
 }
