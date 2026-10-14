@@ -63,11 +63,11 @@ pi_D3D10Backend::pi_D3D10Backend(const PI_BACKEND_RENDER_DESC& desc, PI_BACKEND_
         hbackend->destroy_instbuffer(hinstbuffer);
     };
 
-    pcallbacks->pfn_alloc_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned size, const PI_INSTANCE initial_data[]) noexcept -> bool {
-        return hbackend->alloc_instbuffer(hinstbuffer, size, initial_data);        
+    pcallbacks->pfn_alloc_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned size, const PI_INSTANCE initial_data[], const PI_MATRIX_3X3* normal_transform_data) noexcept -> bool {
+        return hbackend->alloc_instbuffer(hinstbuffer, size, initial_data, normal_transform_data);        
     };
-    pcallbacks->pfn_update_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]) noexcept -> bool {
-        return hbackend->update_instbuffer(hinstbuffer, pos, size, data);        
+    pcallbacks->pfn_update_instbuffer = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[], const PI_MATRIX_3X3* normal_transform_data) noexcept -> bool {
+        return hbackend->update_instbuffer(hinstbuffer, pos, size, data, normal_transform_data);        
     };
 
     pcallbacks->pfn_update_scene_vp = [](PI_HRENDERBACKEND hbackend, PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept -> void {

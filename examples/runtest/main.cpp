@@ -323,7 +323,6 @@ bool gaem_t::update()
 { 
     float dt = pi_get_runtime_dtf(this);
     //std::printf("dt: %f (1/dt: %f)\n", dt, 1/dt);
-  
     
     if (m_dirty.inst) {
         m_dirty.inst = false;

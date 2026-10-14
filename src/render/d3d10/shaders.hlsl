@@ -48,13 +48,15 @@ struct PI_VSINPUT
 {
     float4 vpos: POSITION0;
 #ifdef WORLDEFFECT_LIGHTING
-    float4 vnormal: COLOR0;
+    float3 vnormal: COLOR0;
 #else
     float4 vcol: COLOR0;
 #endif
 
     float4x4 itransform: POSITION1;
     float4 ialbedo: COLOR1;
+
+    float3x3 inormalmat: NORMAL0;
 };
 
 
@@ -67,6 +69,7 @@ struct PI_PSINPUT
 #ifdef WORLDEFFECT_LIGHTING
     float3 normal: NORMAL0;
     float3 worldpos: POSITION0;
+    float3 dif_color: COLOR1;
 #endif
 
     float4 pos: SV_Position;
@@ -97,8 +100,20 @@ PI_PSINPUT VSmain(PI_VSINPUT input)
     output.pos = mul(cvs_viewproj, vpos);
     output.color = input.ialbedo;
 #ifdef WORLDEFFECT_LIGHTING
-    output.normal = input.vnormal;
+    float3 normal = mul(input.inormalmat, input.vnormal);
+    normal = normalize(normal);
+
+    output.normal = normal;
     output.worldpos = vpos;
+    output.dif_color = float3(0.0, 0.0, 0.0);
+
+    for (uint i = 0; i < NUM_DIRLIGHTS; i++) {
+        const PI_DIRLIGHT light = LIGHTS[i].dirlight;
+        float diffuse = dot(light.direction.xyz, -normal);
+        diffuse = max(diffuse, 0.0);
+
+        output.dif_color += diffuse * light.color.rgb * light.color.a;
+    }
 #else
     output.color *= input.vcol;
 #endif
@@ -111,21 +126,13 @@ float4 PSmain(PI_PSINPUT input): SV_Target
     float4 color = input.color;
 #ifdef WORLDEFFECT_LIGHTING
     {
-        float3 lcol = cps_ambient; 
+        float3 lcol = cps_ambient + input.dif_color; 
         
     #ifdef WORLDEFFECT_SPECULAR
         float3 lspec = float3(0.0, 0.0, 0.0);
         float3 viewdir = cps_viewpos - input.worldpos;
         viewdir = normalize(viewdir);
     #endif
-
-        for (uint i = 0; i < NUM_DIRLIGHTS; i++) {
-            const PI_DIRLIGHT light = LIGHTS[i].dirlight;
-            float diffuse = dot(light.direction.xyz, -input.normal);
-            diffuse = max(diffuse, 0.0);
-
-            lcol += diffuse * light.color.rgb * light.color.a;
-        }
         for (uint i = 0; i < NUM_POINTLIGHTS; i++) {
             const PI_POINTLIGHT light = LIGHTS[i].ptlight;
             float3 direction = light.position.xyz - input.worldpos;
@@ -156,5 +163,23 @@ float4 PSmain(PI_PSINPUT input): SV_Target
 #endif
     return color;
 }
+
+#ifdef WORLDEFFECT_LIGHTING
+
+[maxvertexcount(3*2)]
+void GSdebug(triangle PI_PSINPUT input[3], inout LineStream<PI_PSINPUT> output) {
+    PI_PSINPUT psinput;
+    for (uint i = 0; i < 3; i++) {
+        psinput = input[i];
+        psinput.dif_color = float3(1.0, 0.0, 1.0);
+        output.Append(psinput);
+
+        psinput.pos.xyz += psinput.normal * 0.5;
+        output.Append(psinput);
+        output.RestartStrip();
+    }
+}
+
+#endif
 
 //

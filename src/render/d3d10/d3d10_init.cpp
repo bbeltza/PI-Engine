@@ -59,7 +59,7 @@ size_t pi_D3D10Backend::s_calcsize() noexcept
             &dxdevice
         ));
     if (FAILED(hr)) {
-        system("pause");
+        //system("pause");
         return 0;
     }
 
@@ -150,8 +150,13 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
         COMCHECKCALL(m_dxdevice->CreatePixelShader(ps.p_data, ps.datasize, &m_shaders[i].ps));
     }
 
+    #ifdef USE_GS_NORMAL_DEBUGGING
+        COMCHECKCALL(m_dxdevice->CreateGeometryShader(gs_debug, sizeof(gs_debug), &m_dxdebugshader));
+    #endif
+
     {
         static const LPCSTR POSITION = "POSITION";
+        static const LPCSTR NORMAL = "NORMAL";
         static const LPCSTR COLOR = "COLOR";
 
         D3D10_INPUT_ELEMENT_DESC inputs[] = {
@@ -162,7 +167,11 @@ bool pi_D3D10Backend::initialize(const PI_BACKEND_RENDER_DESC& desc) noexcept
             D3D10_INPUT_ELEMENT_DESC{ POSITION, 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 },
             D3D10_INPUT_ELEMENT_DESC{ POSITION, 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 },
             D3D10_INPUT_ELEMENT_DESC{ POSITION, 4, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 },
-            D3D10_INPUT_ELEMENT_DESC{COLOR, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 }
+            D3D10_INPUT_ELEMENT_DESC{COLOR, 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 },
+
+            D3D10_INPUT_ELEMENT_DESC{ NORMAL, 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 },
+            D3D10_INPUT_ELEMENT_DESC{ NORMAL, 1, DXGI_FORMAT_R32G32B32_FLOAT, 2, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 },
+            D3D10_INPUT_ELEMENT_DESC{ NORMAL, 2, DXGI_FORMAT_R32G32B32_FLOAT, 2, D3D10_APPEND_ALIGNED_ELEMENT, D3D10_INPUT_PER_INSTANCE_DATA, 1 }
         };
 
         COMCHECKCALL(m_dxdevice->CreateInputLayout(inputs, PI_ARRAYSIZE(inputs), vs_basic, sizeof(vs_basic), &m_dxinputlayout));
@@ -178,6 +187,10 @@ void pi_D3D10Backend::release_objects() noexcept
 {
     m_samplemap.clear();
     COMRELEASESAFE(m_dxswapchainbuffer);
+
+    #ifdef USE_GS_NORMAL_DEBUGGING
+        COMRELEASE(m_dxdebugshader);
+    #endif
 
     for (auto& shader : m_shaders) {
         COMRELEASE(shader.vs);

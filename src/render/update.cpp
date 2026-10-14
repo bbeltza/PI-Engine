@@ -119,6 +119,30 @@ bool PI_SYSTEM_SCENE::_update_dirty() noexcept
     return true;
 }
 
+static const PI_MATRIX_3X3* update_normal_matrices(PI_WORLDENV_EFFECTS effects, PI_INSTBUFFER_IMPL* instbuffer, unsigned start, unsigned size) noexcept
+{
+    if (!(effects & PI_WORLDEFFECT_LIGHTING)) {
+        return NULL;
+    }
+
+    instbuffer->normaldata.resize(size);
+    const PI_INSTANCE* inststart = instbuffer->bufdata.data() + start;
+    for (unsigned i = 0; i < size; i++) {
+        PI_MATRIX_3X3* nm = &instbuffer->normaldata.at(i);
+        const PI_MATRIX_4X4* im = &inststart->transform;
+        PI_MATRIX_3X3 n;
+        pi_matrix_4x4_to_3x3(&n, im);
+        PI_MATRIX_3X3* res = pi_inverse_3x3(&n, &n); 
+        PI_ASSERT(res);
+        *nm = PI_INIT_STRUCT(PI_MATRIX_3X3){
+            n.xx, n.yx, n.zx,
+            n.xy, n.yy, n.zy,
+            n.xz, n.yz, n.zz
+        };
+    }
+
+    return instbuffer->normaldata.data();
+}
 
 bool PI_SYSTEM_SCENE::_update_instances() noexcept
 {
@@ -137,21 +161,28 @@ bool PI_SYSTEM_SCENE::_update_instances() noexcept
         if (instbuf.backend_size != instbuf.bufdata.capacity()) {
             // `capacity()` can be lower than `backend_size` if `shrink_to_fit` is called. In that case, it'll shrink the buffer. But it very likely won't ever happen, this usually runs when the buffer needs to grow and thus be re-allocated
             instbuf.backend_size = instbuf.bufdata.capacity();
+            unsigned size = static_cast<unsigned>(instbuf.backend_size);
+            const PI_MATRIX_3X3* nm = update_normal_matrices(worldenv->effects, &instbuf, 0, size);
             bres = backend.callbacks.pfn_alloc_instbuffer(
                     hbackend,
                     hinstbuf,
-                    static_cast<unsigned>(instbuf.backend_size),
-                    instbuf.bufdata.data()
+                    size,
+                    instbuf.bufdata.data(),
+                    nm
                 );
             // Dirty regions will be allocated when `instbuf.bufdata.data()` is passed to the backend.
         }
         else {
+            unsigned pos = static_cast<unsigned>(instbuf.dirty.begin);
+            unsigned size = static_cast<unsigned>(instbuf.dirty.size);
+            const PI_MATRIX_3X3* nm = update_normal_matrices(worldenv->effects, &instbuf, pos, size);
             bres = backend.callbacks.pfn_update_instbuffer(
                     hbackend,
                     hinstbuf,
-                    static_cast<unsigned>(instbuf.dirty.begin),
-                    static_cast<unsigned>(instbuf.dirty.size),
-                    &instbuf.bufdata.at(instbuf.dirty.begin)
+                    pos,
+                    size,
+                    &instbuf.bufdata.at(instbuf.dirty.begin),
+                   nm 
                 );
         }
         if (!bres) {

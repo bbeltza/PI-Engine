@@ -74,7 +74,8 @@ void pi_D3D10Backend::bind_scene(PI_HRENDERBACKEND_SCENE hscene) noexcept
 {
     if (hscene != m_lastscene) {
         ID3D10Buffer* const vsbuffers[] = {
-            hscene ? hscene->dxcbvbuffer : NULL
+            hscene ? hscene->dxcbvbuffer : NULL,
+            hscene ? hscene->dxcblightbuffer : NULL
         };
         ID3D10Buffer* const psbuffers[] = {
             hscene ? hscene->dxcbpsbuffer : NULL,

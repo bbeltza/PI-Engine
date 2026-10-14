@@ -411,6 +411,22 @@ PI_INLINE_C PI_VECTOR4 pi_mulv_4x4(PI_VECTOR4 v, const PI_MATRIX_4X4* m) {
 }
 
 
+PI_INLINE_C PI_MATRIX_3X3* _pi_mul_3x3s_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
+    *dst = PI_INIT_STRUCT(PI_MATRIX_3X3){
+        s*m->xx, s*m->xy, s*m->xz,
+        s*m->yx, s*m->yy, s*m->yz,
+        s*m->zx, s*m->zy, s*m->zz
+    };
+    return dst;
+}
+
+PI_INLINE_C PI_MATRIX_3X3* pi_mul_3x3s(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
+    #if PI_MATH_USE_SSE
+
+    #endif
+    return _pi_mul_3x3s_generic(dst, m, s);
+};
+
 #include <math.h>
 
 /* Vector math API */
@@ -551,7 +567,7 @@ PI_INLINE_C PI_VECTOR4* _pi_vector_cross_sse(PI_VECTOR4* dst, PI_VECTOR4 v1, PI_
     res = _mm_sub_ps(res, lmm);
     
     _mm_store_ps(&dst->x, res);
-    return dst;
+    return dst; 
 }
 
 #endif
@@ -595,6 +611,19 @@ PI_CONSTEXPR_F float pi_vector_dot2(PI_VECTOR2 v1, PI_VECTOR2 v2) {
 
     /* Conversions */
 
+#if PI_MATH_USE_SSE
+PI_INLINE_C PI_MATRIX_3X3* _pi_matrix_4x4_to_3x3_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
+     _mm_storeu_ps(&dst->xx, src->__xmm[0]);
+     _mm_storeu_ps(&dst->yx, src->__xmm[1]);
+     _mm_storel_pi((__m64*)&dst->zx, src->__xmm[2]);
+
+     __m128 zm = _mm_shuffle_ps(src->__xmm[2], src->__xmm[2], _MM_SHUFFLE(2, 2, 2, 2));
+     _mm_store_ss(&dst->zz, zm);
+
+     return dst;
+}
+#endif
+
 PI_INLINE_C PI_MATRIX_3X3* _pi_matrix_4x4_to_3x3_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
     *dst = PI_INIT_STRUCT(PI_MATRIX_3X3){
         src->xx, src->xy, src->xz,
@@ -605,6 +634,9 @@ PI_INLINE_C PI_MATRIX_3X3* _pi_matrix_4x4_to_3x3_generic(PI_MATRIX_3X3* dst, con
 }
 
 PI_INLINE_C PI_MATRIX_3X3* pi_matrix_4x4_to_3x3(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
+    #if PI_MATH_USE_SSE
+        return _pi_matrix_4x4_to_3x3_sse(dst, src);
+    #endif
     return _pi_matrix_4x4_to_3x3_generic(dst, src);
 }
 
@@ -768,6 +800,37 @@ PI_INLINE_C PI_MATRIX_4X4* pi_look_at(PI_MATRIX_4X4* dst, PI_VECTOR4 eye, PI_VEC
     pi_vector_normalize4(&look, look);
     return pi_look_along(dst, eye, look, up);
 }
+
+PI_INLINE_C PI_MATRIX_3X3* _pi_inverse_3x3_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m)
+{
+    float det = m->xx*(m->yy*m->zz - m->zy*m->yz) -
+                m->yx*(m->xy*m->zz - m->xz*m->zy) +
+                m->zx*(m->xy*m->yz - m->yy*m->xz);
+    if (det == 0) {
+        return NULL;
+    }
+
+    float invdet = 1 / det;
+    PI_MATRIX_3X3 res =/* PI_INIT_STRUCT(PI_MATRIX_3X3) {
+        +(m->yy*m->zz - m->yz*m->zy), -(m->yx*m->zz - m->yz*m->zx), +(m->yx*m->zy - m->yy*m->zx),
+        -(m->xy*m->zz - m->zy*m->xz), +(m->xx*m->zz - m->xz*m->zx), -(m->xx*m->zy - m->xy*m->zx),
+        +(m->xy*m->yz - m->yy*m->xz), -(m->xx*m->yz - m->xz*m->yx), +(m->xx*m->yy - m->xy*m->yx)
+    };
+    res =*/ PI_INIT_STRUCT(PI_MATRIX_3X3) {
+        +(m->yy*m->zz - m->yz*m->zy), -(m->xy*m->zz - m->zy*m->xz), +(m->xy*m->yz - m->yy*m->xz),
+        -(m->yx*m->zz - m->yz*m->zx), +(m->xx*m->zz - m->xz*m->zx), -(m->xx*m->yz - m->xz*m->yx),
+        +(m->yx*m->zy - m->yy*m->zx), -(m->xx*m->zy - m->xy*m->zx), +(m->xx*m->yy - m->xy*m->yx)
+    };
+    
+    pi_mul_3x3s(dst, &res, invdet);
+    return dst;
+}
+
+
+PI_INLINE_C PI_MATRIX_3X3* pi_inverse_3x3(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
+    return _pi_inverse_3x3_generic(dst, m);
+}
+
 
 /* Some helper definitions */
 

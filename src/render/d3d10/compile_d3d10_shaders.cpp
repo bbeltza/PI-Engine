@@ -122,6 +122,8 @@ constexpr SHADER_INFO shaders[] = {
     /* Specular light-on shaders (With WORLDEFFECT_LIGHTING and WORLDEFFECT_SPECULAR) */
     { "vs_4_0", "VSmain", "vs_lightspecular", MACROS_SPECULARON },
     { "ps_4_0", "PSmain", "ps_lightspecular", MACROS_SPECULARON },
+
+    { "gs_4_0", "GSdebug", "gs_debug", MACROS_LIGHTON }
 };
 
 

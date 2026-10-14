@@ -66,21 +66,32 @@ void pi_D3D10Backend::submit_mesh(PI_HRENDERBACKEND_MESH hmesh, PI_HRENDERBACKEN
 {
     ID3D10Buffer* const buffers[] = {
         hmesh->dxbuffer,
-        hinstbuffer->dxbuffer 
+        hinstbuffer->dxbuffer,
+        hinstbuffer->dxnormalbuffer 
     };
     UINT const strides[] = {
         sizeof(PI_VERTEX),
-        sizeof(PI_INSTANCE)
+        sizeof(PI_INSTANCE),
+        sizeof(PI_MATRIX_3X3)
     };
     UINT const offsets[] = {
+        0,
         0,
         0
     };
 
     m_dxdevice->IASetVertexBuffers(0, PI_ARRAYSIZE(buffers), buffers, strides, offsets);
+
     if (hmesh->index_format != DXGI_FORMAT_UNKNOWN) {
         m_dxdevice->IASetIndexBuffer(hmesh->dxbuffer, hmesh->index_format, hmesh->index_offset);
         m_dxdevice->DrawIndexedInstanced(hmesh->vertex_count, instance_count, 0, 0, 0);
+
+        #ifdef USE_GS_NORMAL_DEBUGGING /* Only debugs indexed meshes right now */  
+        m_dxdevice->GSSetShader(m_dxdebugshader);
+        m_dxdevice->DrawIndexedInstanced(hmesh->vertex_count, instance_count, 0, 0, 0);
+        m_dxdevice->GSSetShader(NULL);
+        #endif
+
     }
     else {
         m_dxdevice->DrawInstanced(hmesh->vertex_count, instance_count, 0, 0);

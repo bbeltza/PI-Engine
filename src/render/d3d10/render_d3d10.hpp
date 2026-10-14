@@ -17,6 +17,8 @@
 
 constexpr unsigned NUM_SHADERS = 3;
 
+//#define USE_GS_NORMAL_DEBUGGING
+
 class PI_DLL
 {
     HMODULE _hmodule = NULL;
@@ -139,8 +141,8 @@ private:
     bool create_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer) noexcept;
     void destroy_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer) noexcept;
 
-    bool alloc_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned size, const PI_INSTANCE initial_data[]) noexcept;
-    bool update_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[]) noexcept;
+    bool alloc_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned size, const PI_INSTANCE initial_data[], const PI_MATRIX_3X3* normal_transform_data) noexcept;
+    bool update_instbuffer(PI_HRENDERBACKEND_INSTBUFFER hinstbuffer, unsigned pos, unsigned size, const PI_INSTANCE data[], const PI_MATRIX_3X3* normal_transform_data) noexcept;
 
     void update_scene_vp(PI_HRENDERBACKEND_SCENE hscene, const PI_MATRIX_4X4* vpmatrix) noexcept;
     void update_scene_lightproperties(PI_HRENDERBACKEND_SCENE hscene, const PI_LIGHT_PROPERTIES* properties) noexcept;
@@ -162,6 +164,11 @@ private:
     ID3D10DepthStencilView* m_dxcurrentdsv = NULL;
 
     D3D10_TEXTURE2D_DESC m_swapchainbufferdesc;
+
+    #ifdef USE_GS_NORMAL_DEBUGGING
+        // Shader used to debug normals and stuff.
+        ID3D10GeometryShader* m_dxdebugshader = NULL;
+    #endif
 
     UINT m_maxsamplequalitylevels[GET_SAMPLE_INDEX(D3D10_MAX_MULTISAMPLE_SAMPLE_COUNT) + 1];
     std::map<SAMPLE_HASH, pi_D3D10sampledata> m_samplemap;
@@ -221,6 +228,7 @@ struct pi_D3D10InstBuffer
     ~pi_D3D10InstBuffer();
 
     ID3D10Buffer* dxbuffer = NULL;
+    ID3D10Buffer* dxnormalbuffer = NULL;
     ID3D10Buffer* dxstagingbuffer = NULL;
 };
 

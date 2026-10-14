@@ -105,6 +105,7 @@ struct PI_INSTBUFFER_IMPL
                                 // Inits to 0, gets updated when the capacity of the buffer (in host memory) changes during update
 
     PI_VECTOR<PI_INSTANCE> bufdata;
+    PI_VECTOR<PI_MATRIX_3X3> normaldata;
     PI_LIST<PI_INSTANCE_IMPL> instlist;
 };
 

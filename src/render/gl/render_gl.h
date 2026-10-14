@@ -183,7 +183,13 @@ typedef struct PI_RENDERBACKEND_MESH {
 } pi_GLmesh;
 typedef struct PI_RENDERBACKEND_INSTBUFFER {
     GLuint vao;
-    GLuint vbo;
+    union {
+        struct {
+            GLuint vbo;
+            GLuint normalvbo;
+        };
+        GLuint vbos[2];
+    };
 
     GLuint vbomesh;
 } pi_GLinstbuffer;
@@ -218,11 +224,11 @@ PI_EXTERN_C void fn_render_gl_destroy_mesh(pi_GLbackend* hbackend, pi_GLmesh* hm
 PI_EXTERN_C bool fn_render_gl_create_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer);
 PI_EXTERN_C void fn_render_gl_destroy_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer);
 PI_EXTERN_C bool fn_render_gl_alloc_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer,
-                                        unsigned size, const PI_INSTANCE initial_data[]
+                                        unsigned size, const PI_INSTANCE initial_data[], const PI_MATRIX_3X3* normal_transform_data
                                     );
 PI_EXTERN_C bool fn_render_gl_update_instbuffer(pi_GLbackend* hbackend, pi_GLinstbuffer* hinstbuffer,
                                         unsigned pos, unsigned count,
-                                        const PI_INSTANCE data[]
+                                        const PI_INSTANCE data[], const PI_MATRIX_3X3* normal_transform_data
                                     );
 PI_EXTERN_C void fn_render_gl_update_scene_vp(pi_GLbackend* hbackend, pi_GLscene* hscene, const PI_MATRIX_4X4* vpmatrix);
 PI_EXTERN_C void fn_render_gl_update_scene_lightproperties(pi_GLbackend* hbackend, pi_GLscene* hscene, const PI_LIGHT_PROPERTIES* properties);
