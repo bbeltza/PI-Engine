@@ -15,6 +15,19 @@ PI_EXTERN_C void fn_physics_pre_update(void* hsystem, PI_HSYSTEMSCENE hsysscenes
     }
 }
 
+//#include <stdio.h>
+
+static void update_transform(PI_RIGIDBODY_DATA* rbdata) {
+    rbdata->rbproperties.position.w = 1.0f;
+    *rbdata->p_transform = pi_scale_4x4(rbdata->rbproperties.scale.x,
+                 rbdata->rbproperties.scale.y,
+                 rbdata->rbproperties.scale.z,
+                 rbdata->rbproperties.scale.w
+            );
+
+    rbdata->p_transform->v.w = rbdata->rbproperties.position;
+}
+
 void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene, float dt)
 {
     update_freelists(hscene);
@@ -28,8 +41,7 @@ void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene, float dt)
                 // but other rigid bodies with a mass can still collide with them.
 
             if (rbdata->p_transform) {
-                rbdata->rbproperties.position.w = 1.0f;
-                rbdata->p_transform->v.w = rbdata->rbproperties.position;
+                update_transform(rbdata);
             }
             goto END_LOOP;
         }
@@ -69,8 +81,7 @@ void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene, float dt)
             *rbdata->p_dirtyflag |= 1;
         }
         if (rbdata->p_transform) {
-            rbdata->rbproperties.position.w = 1.0f;
-            rbdata->p_transform->v.w = rbdata->rbproperties.position;
+            update_transform(rbdata);
         }
 
     END_LOOP:

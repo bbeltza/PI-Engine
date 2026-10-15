@@ -61,13 +61,16 @@ typedef union PI_VECTOR3 {
 
 typedef union PI_VECTOR2 {
     #if PI_MATH_USE_NEON
-        float32x2_t __f32x2
+        float32x2_t __f32x2;
     #endif
     struct {
         float x;
         float y;
     };
     float arr[2];
+    #if PI_MATH_USE_SSE
+        __m64 __mm;
+    #endif
 } PI_VECTOR2;
 
 /* An actual VECTOR4, that is meant to be used as a 3 component vector, instead of a 4 component one, and is SIMD/SSE friendly. */

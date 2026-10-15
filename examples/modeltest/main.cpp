@@ -1,10 +1,10 @@
 #include <piengine/pi_render.h>
 #include <piengine/pi_core.h>
-#include <piengine/pi_math.h>
 #include <piengine/pi_main.h>
 
 #include "tiny_obj_loader.h"
 
+#include <piengine/pi_math.hpp>
 #include <piengine/pi_raii.hpp>
 
 PI_DECLARE_RAIIH(PI_HSCENE);
@@ -245,11 +245,11 @@ bool PI_GAME::app_update() noexcept
         inst.transform = pi_scale_4x4(0.015f, 0.015f, 0.015f, 1.0f);
         inst.transform.wy -= 0.6f;
         inst.transform.zz *= -1.0f;
-        PI_MATRIX_4X4 m;
-        pi_matrix_rotate_y(&m, -rotation.x);
-        pi_mul_4x4(&inst.transform, &m, &inst.transform);
-        pi_matrix_rotate_x(&m, -rotation.y);
-        pi_mul_4x4(&inst.transform, &m, &inst.transform);
+        pi::MATRIX_4X4 m;
+        m(pi_matrix_rotate_y, -rotation.x);
+        inst.transform = m * inst.transform;
+        m(pi_matrix_rotate_x, -rotation.y);
+        inst.transform = m * inst.transform;
 
         inst.transform.wz += 1.5f;
         pi_update_mesh_instance(htriangle_instance, &inst);

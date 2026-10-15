@@ -1,6 +1,6 @@
 #include "game.hpp"
 
-#include <piengine/pi_math.h>
+#include <piengine/pi_math.hpp>
 
 GAME_PLAYER::GAME_PLAYER(PI_HGAME hgame, const PI_VECTOR3& position) noexcept:
     hrigidbody{ pi_add_rigid_body( hgame->get_scene() ) },
@@ -25,23 +25,19 @@ void GAME_PLAYER::update(float dt, const PI_VECTOR2& direction) noexcept
 
     dirty_view = true;
     if (dirty_yawpitch) {
-        if (pitch > PITCH_CLAMP) {
-            pitch = PITCH_CLAMP;
+        if (view_pitch > PITCH_CLAMP) {
+            view_pitch = PITCH_CLAMP;
         }
-        else if (pitch < -PITCH_CLAMP) {
-            pitch = -PITCH_CLAMP;
+        else if (view_pitch < -PITCH_CLAMP) {
+            view_pitch = -PITCH_CLAMP;
         }
 
         dirty_yawpitch = false;
         dirty_view = true;
-        PI_MATRIX_4X4 m, m1;
-        pi_matrix_rotate_y(&m, this->yaw);
-        forward = m.v.z;
-        right = m.v.x;
-
-        pi_matrix_rotate_x(&m1, this->pitch);
-        pi_mul_4x4(&m, &m, &m1);
-        look = m.v.z;
+        yaw = view_yaw;
+        pi::MATRIX_4X4 m;
+        m(pi_matrix_rotate_y, yaw);
+        forward = m->v.z;
     } 
 
     if (direction.x || direction.y) {
@@ -51,12 +47,16 @@ void GAME_PLAYER::update(float dt, const PI_VECTOR2& direction) noexcept
         PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(hrigidbody);
         PI_VECTOR3X delta = { direction.x, 0.0f, direction.y };
         pi_vector_normalize4(&delta, delta);
-        delta = pi_mul_4s(delta, dt * 3.0f);
+        delta *= dt*3.0f;
 
-        PI_MATRIX_4X4 m{};
-        m.v.x = right;
-        m.v.y.y = 1.0f;
-        m.v.z = forward;
+        pi::VECTOR4 up{ 0.0f, 1.0f, 0.0f, 0.0f };
+        pi::VECTOR4 right = pi_vector_cross4(up, forward);
+        pi::MATRIX_4X4 m = { 
+            right,
+            up,
+            forward,
+            {}
+        };
         delta = pi_mulv_4x4(delta, &m);
         properties->position = pi_add_4(properties->position, delta);        
     }

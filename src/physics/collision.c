@@ -2,6 +2,7 @@
 #include <piengine/pi_math.h>
 
 static void update_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar);
+static void update_obb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar);
 
 void _physics_update_collision(PI_HSYSTEMSCENE hscene, PI_HRIGIDBODY rigidbody)
 {
@@ -26,8 +27,11 @@ void _physics_update_collision(PI_HSYSTEMSCENE hscene, PI_HRIGIDBODY rigidbody)
             case PI_COLLISION_AABB:
                 update_aabb(data, scenedata);
                 break;
+            case PI_COLLISION_OBB:
+                update_obb(data, scenedata);
+                break;
             default:
-                abort();
+                PI_ASSUME(0);
         }
     }
 }
@@ -114,12 +118,16 @@ static void aabb_vs_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
         // Incorporate matrix addition (finally) and use it here instead of
         // adding the vectors individually, allowing better raw optimizations.
     struct PI_COLLISIONPROP_AABB worldspacel = {
-        pi_add_4(datal->rbproperties.position, datal->clproperties.aabb.min),
-        pi_add_4(datal->rbproperties.position, datal->clproperties.aabb.max)
+        pi_add_4(datal->rbproperties.position, 
+                pi_mul_4(datal->rbproperties.scale, datal->clproperties.aabb.min)),
+        pi_add_4(datal->rbproperties.position, 
+                pi_mul_4(datal->rbproperties.scale, datal->clproperties.aabb.max))
     };
     struct PI_COLLISIONPROP_AABB worldspacer = {
-        pi_add_4(datar->rbproperties.position, datar->clproperties.aabb.min),
-        pi_add_4(datar->rbproperties.position, datar->clproperties.aabb.max)
+        pi_add_4(datar->rbproperties.position, 
+                pi_mul_4(datar->rbproperties.scale, datar->clproperties.aabb.min)),
+        pi_add_4(datar->rbproperties.position, 
+                pi_mul_4(datar->rbproperties.scale, datar->clproperties.aabb.max))
     };
 
     PI_VECTOR3X push;
@@ -164,6 +172,11 @@ static void update_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
             aabb_vs_aabb(datal, datar);
             break;
         default:
-            abort();
+            PI_ASSUME(0);
     }
+}
+
+static void update_obb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
+{
+
 }

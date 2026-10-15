@@ -134,11 +134,7 @@ static const PI_MATRIX_3X3* update_normal_matrices(PI_WORLDENV_EFFECTS effects, 
         pi_matrix_4x4_to_3x3(&n, im);
         PI_MATRIX_3X3* res = pi_inverse_3x3(&n, &n); 
         PI_ASSERT(res);
-        *nm = PI_INIT_STRUCT(PI_MATRIX_3X3){
-            n.xx, n.yx, n.zx,
-            n.xy, n.yy, n.zy,
-            n.xz, n.yz, n.zz
-        };
+        pi_transpose_3x3(nm, &n);
     }
 
     return instbuffer->normaldata.data();

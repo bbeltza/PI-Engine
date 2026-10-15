@@ -1,7 +1,7 @@
 #include <piengine/pi_main.h>
 #include <piengine/pi_render.h>
 #include <piengine/pi_core.h>
-#include <piengine/pi_math.h>
+#include <piengine/pi_math.hpp>
 
 #include <cstdio>
 
@@ -335,18 +335,15 @@ bool gaem_t::update()
 
         static constexpr PI_VECTOR4 CENTER_VECTOR = { 0.0f, 0.0f, 0.0f };
 
-        PI_MATRIX_4X4 rotx;
-        PI_MATRIX_4X4 roty;
+        pi::MATRIX_4X4 rotx{ pi_matrix_rotate_x, m_viewangle.x };
+        pi::MATRIX_4X4 roty{ pi_matrix_rotate_y, m_viewangle.y };
         PI_VECTOR4 eye = { 0.0f, 0.0f, -m_viewrealdistance };
-        pi_matrix_rotate_y(&rotx, m_viewangle.y);
-        pi_matrix_rotate_x(&roty, m_viewangle.x);
-        eye = pi_mulv_4x4(eye, pi_mul_4x4(&rotx, &rotx, &roty));
+        roty *= rotx;
+        eye *= roty;
 
-        PI_VECTOR4 up = rotx.v.y;
+        PI_VECTOR4 up = roty->v.y;
 
-        PI_MATRIX_4X4 view;
-        pi_look_at(&view, eye, CENTER_VECTOR, up);
-
+        pi::MATRIX_4X4 view{pi_look_at, eye, CENTER_VECTOR, up};
         pi_set_scene_view(m_hscene, &view);
 
         PI_LIGHT_PROPERTIES lightproperties;

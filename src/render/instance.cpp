@@ -82,7 +82,9 @@ PI_INSTBUFFER_IMPL::PI_INSTBUFFER_IMPL(PI_SYSTEM_RENDER* _renderer) noexcept:
 PI_INSTBUFFER_IMPL::~PI_INSTBUFFER_IMPL() noexcept
 {
     if (renderer) {
-        instlist.clear();
+        while (!instlist.empty()) {
+            instlist.pop_front();
+        }
         renderer->backend.callbacks.pfn_destroy_instbuffer(renderer->get_backend(), this->get_backend());
     }
     else {

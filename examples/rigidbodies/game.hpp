@@ -21,10 +21,9 @@ struct GAME_PLAYER
 
     PI_VECTOR3X get_view_position() noexcept;
 
-    float yaw = 0.0f, pitch = 0.0f;
-    PI_VECTOR3X look;
-    PI_VECTOR3X forward;
-    PI_VECTOR3X right;
+    float yaw = 0.0f;
+    float view_yaw = 0.0f, view_pitch = 0.0f;
+    PI_VECTOR3X forward{ 0.0f, 0.0f, 1.0f };
     PI_HRIGIDBODY_RAII hrigidbody;
 
     bool dirty_yawpitch : 1;

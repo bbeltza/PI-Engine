@@ -3,7 +3,7 @@
 #include "physics_internal.h"
 
 
-PI_EXTERN_C struct PI_COLLISIONPROP_AABB* pi_get_mesh_aabb(struct PI_COLLISIONPROP_AABB* dst, const PI_VERTEX* vertices, unsigned num_vertices, const PI_MATRIX_4X3* ptransform)
+PI_EXTERN_C struct PI_COLLISIONPROP_AABB* pi_get_mesh_aabb(struct PI_COLLISIONPROP_AABB* dst, const PI_VERTEX* vertices, unsigned num_vertices, const PI_MATRIX_4X4* ptransform)
 {
     const float FLOAT_MAX = 3.402823e+38f;
 
@@ -12,9 +12,8 @@ PI_EXTERN_C struct PI_COLLISIONPROP_AABB* pi_get_mesh_aabb(struct PI_COLLISIONPR
     for (unsigned i = 0; i < num_vertices; i++) {
         const PI_VERTEX* vt = &vertices[i];
         PI_VECTOR3X pos = { vt->pos.x, vt->pos.y, vt->pos.z };
-
         if (ptransform) {
-            PI_ASSERT(0 && "`transform` must be NULL for now, 4x3 matrix multiplication hasn't been implemented yet, ");
+            pos = pi_mulv_4x4(pos, ptransform);
         }
 
         min = pi_min4(min, pos);

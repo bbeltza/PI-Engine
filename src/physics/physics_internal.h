@@ -28,6 +28,9 @@ typedef struct PI_SYSTEM_SCENE
     unsigned rbfreelist_last, rbfreelist_capacity,
              rbfreelist_first;
 
+    PI_COLLISIONPROP_OBB* obbs;
+    unsigned obb_count, obb_capacity;
+
     struct PI_RIGIDBODY_IMPL* rbhead;
 
     PI_PHYSICS_SCENE_PROPERTIES properties;

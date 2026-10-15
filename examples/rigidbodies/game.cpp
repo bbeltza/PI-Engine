@@ -1,6 +1,6 @@
 #include <common/cube.h>
 
-#include <piengine/pi_math.h>
+#include <piengine/pi_math.hpp>
 
 #include "game.hpp"
 
@@ -20,7 +20,7 @@ PI_GAME::PI_GAME():
             common::CUBE_INDEX_TYPE
         ) },
 
-    ground{ this, { 0.5f, -2.0f, 1.0f }, { 4.0f, 1.0f, 5.0f }, hcubemesh },
+    ground{ this, { 0.5f, -2.0f, 1.0f }, { 10.0f, 1.0f, 10.0f }, hcubemesh },
     falling_cube{ this, { 0.0f, 0.0f, 2.0f }, {1.0f, 1.0f, 1.0f }, hcubemesh },
 
     hlight{ create_light(hscene) }
@@ -129,8 +129,8 @@ bool PI_GAME::_handle_motion(const PI_MOTIONEVENT& event) noexcept
 
     if (pi_is_window_cursor_locked(event.hwindow)) {
         player.dirty_yawpitch = true;
-        player.pitch += event.delta_y * SENSIBILITY,
-        player.yaw += event.delta_x * SENSIBILITY;
+        player.view_pitch += event.delta_y * SENSIBILITY,
+        player.view_yaw += event.delta_x * SENSIBILITY;
     }
     return true;
 }
@@ -140,6 +140,8 @@ bool PI_GAME::_handle_wheel(const PI_WHEELEVENT& event) noexcept
 
     return true;
 }
+
+#include <cstdio>
 
 void PI_GAME::_update_dirty() noexcept
 {
@@ -162,12 +164,13 @@ void PI_GAME::_update_dirty() noexcept
     if (player.dirty_view) {
         player.dirty_view = false;
         
-        PI_MATRIX_4X4 m;
-        pi_look_along(&m, player.get_view_position(),
-                    player.look,
-                    { 0.0f, 1.0f, 0.0f } 
-                );
-        pi_set_scene_view(hscene, &m);
+        pi::MATRIX_4X4 l, r;
+        l(pi_matrix_rotate_y, player.view_yaw);
+        r(pi_matrix_rotate_x, player.view_pitch);
+        l *= r;
+        
+        r(pi_look_along, player.get_view_position(), l->v.z, l->v.y);       
+        pi_set_scene_view(hscene, &r);
     }
 }
 

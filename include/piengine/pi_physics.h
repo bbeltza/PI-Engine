@@ -22,7 +22,8 @@ PI_EXTERN_C void pi_remove_rigid_body(PI_HRIGIDBODY hrigidbody);
 
 typedef enum PI_COLLISION_TYPE {
     PI_COLLISION_NONE = 0,
-    PI_COLLISION_AABB = 1
+    PI_COLLISION_AABB = 1,
+    PI_COLLISION_OBB = 2 /* Oriented-Bounding-Boxes, experimental. */
 } PI_COLLISION_TYPE;
 
 
@@ -31,7 +32,9 @@ typedef struct PI_COLLISIONPROP_AABB {
     PI_VECTOR3X max;
 } PI_COLLISIONPROP_AABB;
 typedef struct PI_COLLISIONPROP_OBB {
-    PI_VECTOR3X pts[2 /* 16, OBBs aren't implemented yet */];
+    PI_VECTOR3X half_size;
+    PI_VECTOR3X right;
+    PI_VECTOR3X up;
 } PI_COLLISIONPROP_OBB;
 typedef struct PI_COLLISIONPROP_SPHERE {
     PI_VECTOR3X origin;
@@ -57,6 +60,8 @@ typedef struct PI_RIGIDBODY_PROPERTIES
 {
     float mass;
     float _padding[3];
+    PI_VECTOR4 direction; // Right vector direction of the rigid body, the `w` component decides whether it points up or down. (1 or -1 respectively)
+    PI_VECTOR4 scale;
     PI_VECTOR3X position;
     PI_VECTOR3X velocity;
     PI_VECTOR3X force;
@@ -64,11 +69,8 @@ typedef struct PI_RIGIDBODY_PROPERTIES
 
 PI_EXTERN_C PI_RIGIDBODY_PROPERTIES* pi_get_rigid_body_properties(PI_HRIGIDBODY hrigidbody);
 
-typedef void PI_MATRIX_4X3;
-
 struct PI_VERTEX;
-/* Helper to determine the instance of  */
 
-PI_EXTERN_C struct PI_COLLISIONPROP_AABB* pi_get_mesh_aabb(struct PI_COLLISIONPROP_AABB* dst, struct PI_VERTEX const* vertices, unsigned num_vertices, const PI_MATRIX_4X3* ptransform);
+PI_EXTERN_C struct PI_COLLISIONPROP_AABB* pi_get_mesh_aabb(struct PI_COLLISIONPROP_AABB* dst, struct PI_VERTEX const* vertices, unsigned num_vertices, const PI_MATRIX_4X4* transform);
 
 #endif

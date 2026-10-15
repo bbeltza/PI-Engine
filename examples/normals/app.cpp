@@ -1,6 +1,7 @@
 #include "app.hpp"
 
 #include <common/cube.h>
+#include <piengine/pi_math.hpp>
 
 static PI_HWORLDENV create_worldenv(PI_HGAME hgame)
 {
@@ -107,11 +108,10 @@ bool PI_GAME::app_update() noexcept
             dirty.cube = false;
 
         PI_INSTANCE i;
-        PI_MATRIX_4X4 m;
+        pi::MATRIX_4X4 m{pi_matrix_rotate_x, realcubepitch};
         pi_matrix_rotate_y(&i.transform, realcubeyaw);
-        pi_matrix_rotate_x(&m, realcubepitch);
-        pi_mul_4x4(&i.transform, &m, &i.transform);
-        i.transform.wz = 0.1f;
+        i.transform = m * i.transform;
+        i.transform.wz = 0.0f;
 
         pi_update_mesh_instance(hinstance, &i);
     }

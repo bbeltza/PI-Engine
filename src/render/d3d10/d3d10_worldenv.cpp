@@ -99,6 +99,9 @@ bool pi_D3D10Backend::create_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworlde
             return false;
         }
     }
+    else {
+        hworldenv->dxdepthstencil = NULL;
+    }
 
     return true;
 }
@@ -186,6 +189,6 @@ void pi_D3D10Backend::destroy_worldenvironment(PI_HRENDERBACKEND_WORLDENV hworld
 
 pi_D3D10WorldEnv::~pi_D3D10WorldEnv() noexcept
 {
-    COMRELEASE(dxdepthstencil);
+    COMRELEASESAFE(dxdepthstencil);
     COMRELEASE(dxrasterizer);
 }

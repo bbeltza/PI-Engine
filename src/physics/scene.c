@@ -26,6 +26,10 @@ bool _physics_init_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene)
     hscene->rbfreelist_capacity = 0;
     hscene->rbfreelist_first = 0;
 
+    hscene->obbs = NULL;
+    hscene->obb_count = 0;
+    hscene->obb_capacity = 0;
+
     hscene->rbhead = NULL;
 
     hscene->properties.gravity = 0.0f;
