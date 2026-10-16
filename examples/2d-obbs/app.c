@@ -195,6 +195,8 @@ static PI_MATRIX_4X4 aabb2_to_4x4(PI_VECTOR2 min, PI_VECTOR2 max) {
     };
 }
 
+#include <stdio.h>
+
 static void update_dirty(PI_HGAME self)
 {
     if (self->dirty.proj) {
@@ -233,44 +235,24 @@ static void update_dirty(PI_HGAME self)
             PI_VECTOR2 yaxis1 = pi_vec2_muls(self->rect1.y_axis, self->rect1.h_size.y);
             PI_VECTOR2 yaxis2 = pi_vec2_muls(self->rect2.y_axis, self->rect2.h_size.y);
 
-            //bool test_axis(const PI_VECTOR2* t, const PI_VECTOR2* axis, float w_or_h, const PI_VECTOR2* other_axis, float* tdot, float* rdot);
-            if (test_axis(&t, &self->rect1.x_axis, self->rect1.h_size.x, &xaxis2, &yaxis2, NULL, NULL) ||
-                test_axis(&t, &self->rect1.y_axis, self->rect1.h_size.y, &xaxis2, &yaxis2, NULL, NULL) ||
-                test_axis(&t, &self->rect2.x_axis, self->rect2.h_size.x, &xaxis1, &yaxis1, NULL, NULL) ||
-                test_axis(&t, &self->rect2.y_axis, self->rect2.h_size.y, &xaxis1, &yaxis1, NULL, NULL)
+            float x1dt = 0, x1dr = 0;
+            float y1dt = 0, y1dr = 0;
+            float x2dt = 0, x2dr = 0;
+            float y2dt = 0, y2dr = 0;
+
+            if (test_axis(&t, &self->rect1.x_axis, self->rect1.h_size.x, &xaxis2, &yaxis2, &x1dt, &x1dr) ||
+                test_axis(&t, &self->rect1.y_axis, self->rect1.h_size.y, &xaxis2, &yaxis2, &y1dt, &y1dr) ||
+                test_axis(&t, &self->rect2.x_axis, self->rect2.h_size.x, &xaxis1, &yaxis1, &x2dt, &x2dr) ||
+                test_axis(&t, &self->rect2.y_axis, self->rect2.h_size.y, &xaxis1, &yaxis1, &y2dt, &y2dr)
                     ) {
                 col.z = 1.0f;
             }
-            
-            {
-                float dotl = pi_vector_dot2(t, self->rect1.y_axis);
-                dotl = fabsf(dotl);
-                float dotr = self->rect1.h_size.y +
-                    fabsf(pi_vector_dot2(xaxis2, self->rect1.y_axis)) +
-                    fabsf(pi_vector_dot2(yaxis2, self->rect1.y_axis));
-                if (dotl > dotr) {
-                    col.z = 1.0f;
-                }
-            } {
-                float dotl = pi_vector_dot2(t, self->rect2.x_axis);
-                dotl = fabsf(dotl);
-                float dotr = self->rect2.h_size.x +
-                    fabsf(pi_vector_dot2(xaxis1, self->rect2.x_axis)) +
-                    fabsf(pi_vector_dot2(yaxis1, self->rect2.x_axis));
-                if (dotl > dotr) {
-                    col.z = 1.0f;
-                }
-            } {
-                float dotl = pi_vector_dot2(t, self->rect2.y_axis);
-                dotl = fabsf(dotl);
-                float dotr = self->rect2.h_size.y +
-                    fabsf(pi_vector_dot2(xaxis1, self->rect2.y_axis)) +
-                    fabsf(pi_vector_dot2(yaxis1, self->rect2.y_axis));
-                if (dotl > dotr) {
-                    col.z = 1.0f;
-                }
+            else {
+                printf("%f %f  %f %f  %f %f  %f %f\n",
+                            x1dt, x1dr, y1dt, y1dr,
+                            x2dt, x2dr, y2dt, y2dr
+                        );
             }
-
         }
 
         update_rectangle(&self->rect2, &col);
