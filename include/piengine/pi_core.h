@@ -574,6 +574,7 @@ typedef struct PI_MOTIONEVENT {
 typedef struct PI_WHEELEVENT {
     PI_HWND hwindow;
 
+    PI_KEYMODS mods;
     float amnt_x;
     float amnt_y;
     float x;

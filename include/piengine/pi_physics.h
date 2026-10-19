@@ -23,7 +23,8 @@ PI_EXTERN_C void pi_remove_rigid_body(PI_HRIGIDBODY hrigidbody);
 typedef enum PI_COLLISION_TYPE {
     PI_COLLISION_NONE = 0,
     PI_COLLISION_AABB = 1,
-    PI_COLLISION_OBB = 2 /* Oriented-Bounding-Boxes, experimental. */
+    PI_COLLISION_SPHERE = 2,
+    //PI_COLLISION_OBB = 3 /* Oriented-Bounding-Boxes, experimental. */
 } PI_COLLISION_TYPE;
 
 
@@ -33,8 +34,7 @@ typedef struct PI_COLLISIONPROP_AABB {
 } PI_COLLISIONPROP_AABB;
 typedef struct PI_COLLISIONPROP_OBB {
     PI_VECTOR3X half_size;
-    PI_VECTOR3X right;
-    PI_VECTOR3X up;
+    PI_VECTOR3X _private[4];
 } PI_COLLISIONPROP_OBB;
 typedef struct PI_COLLISIONPROP_SPHERE {
     PI_VECTOR3X origin;
@@ -46,7 +46,7 @@ typedef struct PI_COLLISION_PROPERTIES
     PI_COLLISION_TYPE type;
     union {
         PI_COLLISIONPROP_AABB aabb;
-        PI_COLLISIONPROP_OBB obb;
+        //PI_COLLISIONPROP_OBB obb;
         PI_COLLISIONPROP_SPHERE sphere;
     };
 } PI_COLLISION_PROPERTIES;
@@ -60,7 +60,7 @@ typedef struct PI_RIGIDBODY_PROPERTIES
 {
     float mass;
     float _padding[3];
-    PI_VECTOR4 direction; // Right vector direction of the rigid body, the `w` component decides whether it points up or down. (1 or -1 respectively)
+    PI_VECTOR3X angle;
     PI_VECTOR4 scale;
     PI_VECTOR3X position;
     PI_VECTOR3X velocity;

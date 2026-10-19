@@ -177,8 +177,15 @@ void* pi_get_window_native_handle(PI_HWND hwnd)
     handle = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
     if (handle)
         goto RETURN;
+#elif defined(__unix__)
+    handle = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, NULL);
+    if (handle)
+        goto RETURN;
+    handle = (void*)SDL_GetNumberProperty(properties, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+    if (handle)
+        goto RETURN;
 #else
-    #error "TODO: Add Xlib/XCB & Wayland support for pi_get_window_native_handle"
+    #error "Add platform support for pi_get_window_native_handle"
 #endif
 RETURN:
     return handle;
@@ -304,6 +311,26 @@ static PI_KEYMODS GET_KEYMODS_FROMSDL(SDL_Keymod sdlmod) {
     return mods;
 }
 
+static PI_KEYMODS GET_KEYMODS_FROMSTATE() {
+    #define MAP_MOD(sdlkey, mod) if (state[sdlkey]) mods |= mod
+    PI_KEYMODS mods = PI_KEYMOD_NONE;
+
+    const bool* state = SDL_GetKeyboardState(NULL);
+    MAP_MOD(SDL_SCANCODE_LSHIFT, PI_KEYMOD_LSHIFT);
+    MAP_MOD(SDL_SCANCODE_RSHIFT, PI_KEYMOD_RSHIFT);
+    MAP_MOD(SDL_SCANCODE_LCTRL, PI_KEYMOD_LCTRL);
+    MAP_MOD(SDL_SCANCODE_RCTRL, PI_KEYMOD_RCTRL);
+    MAP_MOD(SDL_SCANCODE_LALT, PI_KEYMOD_LALT);
+    MAP_MOD(SDL_SCANCODE_RALT, PI_KEYMOD_RALT);
+    MAP_MOD(SDL_SCANCODE_LGUI, PI_KEYMOD_LWIN);
+    MAP_MOD(SDL_SCANCODE_RGUI, PI_KEYMOD_RWIN);
+
+    /* Can't take in account lock keys yet :( */
+
+    return mods;
+    #undef MAP_MOD
+}
+
 static PI_BUTTONSTATE GET_MOUSESTATE_FROMSDL(SDL_MouseButtonFlags state) {
     #define MAP_STATE(statesdl, statepi) s |= (state & statesdl) ? statepi : 0
     PI_BUTTONSTATE s = 0;
@@ -409,6 +436,7 @@ bool pi_map_sdl_event(PI_EVENT* event, const SDL_Event* sdlevent)
         case SDL_EVENT_MOUSE_WHEEL:
             event->type = PI_EVENT_MOUSEWHEEL;
             event->wheel.hwindow = pi_get_window_fromID(sdlevent->wheel.windowID);
+            event->wheel.mods = GET_KEYMODS_FROMSTATE();
             event->wheel.amnt_x = sdlevent->wheel.x * (sdlevent->wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1 : 1);
             event->wheel.amnt_y = sdlevent->wheel.y * (sdlevent->wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1 : 1);
             event->wheel.x = sdlevent->wheel.mouse_x;

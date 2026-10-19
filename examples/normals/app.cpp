@@ -46,14 +46,14 @@ PI_GAME::PI_GAME() noexcept:
     pi_set_scene_view(hscene, &m);
 
     PI_LIGHT light;
-    light.directional = {
+    light.directional = PI_DIRECTIONAL_LIGHT{
         { -1.0f, -2.0f, 0.3f }, // Directions will be normalized by the engine
         { 0.9f, 0.9f, 1.0f, 1.0f }
     };
     pi_add_light(hscene, PI_LIGHT_DIRECTIONAL, &light);
     
-    light.point = {
-        { -2.0f, -3.0f, 0.3f },
+    light.point = PI_POINT_LIGHT{
+        { -2.0f, -3.0f, 0.3f, 0.0f },
         { 1.0f, 0.8f, 0.9f, 1.0f },
         6.0f,
         4.0f
@@ -61,7 +61,7 @@ PI_GAME::PI_GAME() noexcept:
     pi_add_light(hscene, PI_LIGHT_POINT, &light);
 
 
-    PI_LIGHT_PROPERTIES light_properties = {
+    PI_LIGHT_PROPERTIES light_properties = PI_LIGHT_PROPERTIES{
         { 0.1f, 0.1f, 0.1f },
         { 0.0f, 0.0f, -2.0f },
         { 22 },
@@ -108,7 +108,8 @@ bool PI_GAME::app_update() noexcept
             dirty.cube = false;
 
         PI_INSTANCE i;
-        pi::MATRIX_4X4 m{pi_matrix_rotate_x, realcubepitch};
+        pi::MATRIX_4X4 m;
+        m(pi_matrix_rotate_x, realcubepitch);
         pi_matrix_rotate_y(&i.transform, realcubeyaw);
         i.transform = m * i.transform;
         i.transform.wz = 0.0f;

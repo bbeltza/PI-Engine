@@ -9,8 +9,8 @@
 #define PI_LERP(a, b, t) ( (a) + _PI_LERP_RIGHT(a, b, t) )
 #define PI_LERPA(a, b, t) (a) += _PI_LERP_RIGHT(a, b, t) /* Assign linear interpolation to `a` */
 
-#define PI_CLAMP(x, min, max) x > max ? max : ( x < min ? min : x )
-#define PI_CLAMPX(x, min, max) if (x > max) x = max; else if (x < min) x = min;
+#define PI_CLAMP(x, min, max) ( (x) > (max) ? (max) : ( (x) > (min) ? (x) : (min) ) )
+#define PI_CLAMPX(x, min, max) if ((x) > (max)) x = max; else if (!((x) > (min))) x = min;
 
 #define PI_MAX(x, y) ( (x) > (y) ? (x) : (y) )
 #define PI_MIN(x, y) ( (x) < (y) ? (x) : (y) )
@@ -727,8 +727,8 @@ PI_INLINE_C PI_MATRIX_3X3* _pi_transpose_3x3_sse(PI_MATRIX_3X3* dst, const PI_MA
     sh1 = _mm_shuffle_ps(sh1, sh1, _MM_SHUFFLE(0, 3, 2, 1));
     __m128 sh2 = _mm_shuffle_ps(m3, m3, _MM_SHUFFLE(0, 3, 2, 3));
 
-    _mm_store_ps(&dst->xx, sh0);
-    _mm_store_ps(&dst->yx, sh1);
+    _mm_storeu_ps(&dst->xx, sh0);
+    _mm_storeu_ps(&dst->yx, sh1);
     _mm_storel_pi((__m64*)&dst->zy, sh2);
     return dst;
 }
@@ -824,6 +824,36 @@ PI_INLINE_C PI_VECTOR4* pi_vector_normalize4(PI_VECTOR4* dst, PI_VECTOR4 v)
         return _pi_vector_normalize4_sse(dst, v);
     #endif
     return _pi_vector_normalize4_generic(dst, v);
+}
+
+
+
+#if PI_MATH_USE_SSE
+    PI_INLINE_C float _pi_vec4_length_sse(PI_VECTOR4 v) {
+        __m128 sq = _mm_mul_ps(v.__xmm, v.__xmm);
+        __m128 sqsh = _mm_shuffle_ps(sq, sq, _MM_SHUFFLE(2, 3, 0, 1));
+        __m128 sum1 = _mm_add_ps(sq, sqsh);
+        sqsh = _mm_shuffle_ps(sum1, sum1, _MM_SHUFFLE(1, 1, 2, 3));
+
+        __m128 len = _mm_add_ss(sum1, sqsh);
+        len = _mm_sqrt_ss(len);
+        return _mm_cvtss_f32(len);
+    }
+#endif
+    
+PI_CONSTEXPR_F float pi_vector_dot4(PI_VECTOR4 v1, PI_VECTOR4 v2);
+PI_INLINE_C float _pi_vec4_length_generic(PI_VECTOR4 v) {
+    float len = pi_vector_dot4(v, v);
+    len = sqrtf(len);
+
+    return len;
+}
+
+PI_INLINE_C float pi_vec4_length(PI_VECTOR4 v) {
+    #if PI_MATH_USE_SSE
+        return _pi_vec4_length_sse(v);
+    #endif
+    return _pi_vec4_length_generic(v);
 }
 
 

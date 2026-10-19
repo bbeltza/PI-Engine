@@ -9,7 +9,12 @@
     #define PI_INLINE_C static __forceinline
     #define PI_ALIGN_AS(n) __declspec(align(n))
 #elif __GNUC__
-    #define PI_INLINE_C static inline __attribute__((always_inline))
+    #ifdef NDEBUG
+        #define PI_INLINE_C static inline __attribute__((always_inline))
+    #else
+        #define PI_INLINE_C static inline
+    #endif
+
     #define PI_ALIGN_AS(n) __attribute__((aligned(n)))
 #else
     #define PI_INLINE_C static inline

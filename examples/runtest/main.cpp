@@ -2,9 +2,7 @@
 #include <piengine/pi_render.h>
 #include <piengine/pi_core.h>
 #include <piengine/pi_math.hpp>
-
-#include <cstdio>
-
+#include <piengine/pi_debug.h>
 
 namespace appcallbacks
 {
@@ -298,7 +296,7 @@ bool gaem_t::event(PI_EVENT* event)
             float ratio = event->window.data1 / static_cast<float>(event->window.data2);
             PI_MATRIX_4X4 p = pi_matrix_perspective(70_degf, ratio, 0.1f, 10.0f);
             pi_set_scene_projection(m_hscene, &p);
-            //std::printf("WINDOW_RESIZED: %d %d\n", event->window.data1, event->window.data2);
+            PI_DEBUG_FMT("WINDOW_RESIZED: %d %d", event->window.data1, event->window.data2);
         } break;
         case PI_EVENT_MOUSEWHEEL:
             if (!event->wheel.amnt_y)
@@ -310,7 +308,7 @@ bool gaem_t::event(PI_EVENT* event)
                 m_dirty.view = true;
             break;
         case PI_EVENT_UNKNOWN:
-            //std::printf("Got UNKNOWN event\n");
+            PI_DEBUG_STR("Got UNKNOWN event");
             break;
         default:
             break;
@@ -322,7 +320,7 @@ bool gaem_t::event(PI_EVENT* event)
 bool gaem_t::update()
 { 
     float dt = pi_get_runtime_dtf(this);
-    //std::printf("dt: %f (1/dt: %f)\n", dt, 1/dt);
+    PI_DEBUG_FMT("dt: %f (1/dt: %f)", dt, 1/dt);
     
     if (m_dirty.inst) {
         m_dirty.inst = false;
@@ -335,15 +333,18 @@ bool gaem_t::update()
 
         static constexpr PI_VECTOR4 CENTER_VECTOR = { 0.0f, 0.0f, 0.0f };
 
-        pi::MATRIX_4X4 rotx{ pi_matrix_rotate_x, m_viewangle.x };
-        pi::MATRIX_4X4 roty{ pi_matrix_rotate_y, m_viewangle.y };
+        pi::MATRIX_4X4 rotx;
+        pi::MATRIX_4X4 roty;
+        rotx( pi_matrix_rotate_x, m_viewangle.x );
+        roty( pi_matrix_rotate_y, m_viewangle.y );
         PI_VECTOR4 eye = { 0.0f, 0.0f, -m_viewrealdistance };
         roty *= rotx;
         eye *= roty;
 
         PI_VECTOR4 up = roty->v.y;
 
-        pi::MATRIX_4X4 view{pi_look_at, eye, CENTER_VECTOR, up};
+        pi::MATRIX_4X4 view;
+        view(pi_look_at, eye, CENTER_VECTOR, up);
         pi_set_scene_view(m_hscene, &view);
 
         PI_LIGHT_PROPERTIES lightproperties;

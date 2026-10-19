@@ -1,6 +1,7 @@
 #include "app.h"
 
 #include <piengine/pi_math.h>
+#include <piengine/pi_debug.h>
 #include <string.h>
 
 #define _SCALE 10.0f
@@ -37,11 +38,11 @@ PI_EXTERN_C bool app_start(PI_HGAME self, va_list args)
     init_rectangle(self, &self->rect1);
     init_rectangle(self, &self->rect2);
 
-    //self->htest1 = pi_add_scene_mesh(self->hscene, self->hquadmesh, NULL);
     //self->htest2 = pi_add_scene_mesh(self->hscene, self->hquadmesh, NULL);
+    //self->htest1 = pi_add_scene_mesh(self->hscene, self->hquadmesh, NULL);
 
     {
-        float rect1angle = PI_DEGF(40);
+        float rect1angle = PI_DEGF(100);
         float c = cosf(rect1angle),
               s = sinf(rect1angle);
         self->rect1.x_axis.x = c;
@@ -88,13 +89,16 @@ PI_EXTERN_C bool app_event(PI_HGAME self, PI_EVENT* event)
             self->rect2.position.y /= hh * INVSCALE;
         } break;
         case PI_EVENT_MOUSEWHEEL:
-            if (event->wheel.amnt_y) {
-                self->dirty.rect2angle = true;
-                self->rect2angle += -event->wheel.amnt_y * PI_DEGF(5);
-            }
-            if (event->wheel.amnt_x) {
+            if (event->wheel.mods & PI_KEYMOD_SHIFT) {
                 self->dirty.rect2 = true;
                 self->rect2.h_size.x += event->wheel.amnt_x * 0.25f;
+                self->rect2.h_size.y += event->wheel.amnt_y * 0.25f;
+            }
+            else {
+                if (event->wheel.amnt_y) {
+                    self->dirty.rect2angle = true;
+                    self->rect2angle += -event->wheel.amnt_y * PI_DEGF(5);
+                }
             }
             break;
         default:
@@ -169,18 +173,22 @@ static bool create_mesh(PI_HGAME self)
 
 /**/
 
-bool test_axis(const PI_VECTOR2* t, const PI_VECTOR2* axis, float w_or_h, const PI_VECTOR2* scaled_xaxis, const PI_VECTOR2* scaled_yaxis, float* tdot, float* rdot) {
-    float dotl = pi_vector_dot2(*t, *axis);
-    dotl = fabsf(dotl);
-    float dotr = w_or_h +
+bool test_axis(const PI_VECTOR2* t, const PI_VECTOR2* axis, float w_or_h, const PI_VECTOR2* scaled_xaxis, const PI_VECTOR2* scaled_yaxis, float* p_tprojected, float* p_lprojected, bool* p_tneg) {
+    float tprojected = pi_vector_dot2(*t, *axis);
+    if (p_tneg) {
+        *p_tneg = signbit(tprojected);
+    }
+
+    tprojected = fabsf(tprojected);
+    float lprojected = w_or_h +
         fabsf(pi_vector_dot2(*scaled_xaxis, *axis)) +
         fabsf(pi_vector_dot2(*scaled_yaxis, *axis));
 
-    if (tdot)
-        *tdot = dotl;
-    if (rdot)
-        *rdot = dotr;
-    return dotl > dotr;
+    if (p_tprojected)
+        *p_tprojected = tprojected;
+    if (p_lprojected)
+        *p_lprojected = lprojected;
+    return tprojected > lprojected;
 }
 
 static PI_MATRIX_4X4 aabb2_to_4x4(PI_VECTOR2 min, PI_VECTOR2 max) {
@@ -195,7 +203,37 @@ static PI_MATRIX_4X4 aabb2_to_4x4(PI_VECTOR2 min, PI_VECTOR2 max) {
     };
 }
 
-#include <stdio.h>
+static PI_MATRIX_4X4 pt_to_4x4(PI_VECTOR2 pt, float r) {
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        r, 0.0f, 0.0f, 0.0f,
+        0.0f, r, 0.0f, 0.0f,
+        0.0f, 0.0f, r, 0.0f,
+        pt.x, pt.y, 0.0f, 1.0f
+    };
+}
+
+float angle_from_axis(const PI_VECTOR2* x_axis) {
+    float ac = acosf(x_axis->x);
+    float as = asinf(-x_axis->y);
+    float a = 0.0f;
+    if (ac == as || ac > PI_M_PI/2) {
+        a = ac;                
+    }
+    else {
+        a = as;
+    }
+    if (ac > PI_M_PI/2 && as < 0) {
+        a = -a;
+    }
+    return a;
+}
+
+/* Find closest angle to a which is a multiple of 90 degrees + target */
+static float find_closest_perp_angle(float a, float target) {
+    float t = remainderf(target - a, PI_DEGF(90)) + a;
+    return t;
+}
+
 
 static void update_dirty(PI_HGAME self)
 {
@@ -240,19 +278,55 @@ static void update_dirty(PI_HGAME self)
             float x2dt = 0, x2dr = 0;
             float y2dt = 0, y2dr = 0;
 
-            if (test_axis(&t, &self->rect1.x_axis, self->rect1.h_size.x, &xaxis2, &yaxis2, &x1dt, &x1dr) ||
-                test_axis(&t, &self->rect1.y_axis, self->rect1.h_size.y, &xaxis2, &yaxis2, &y1dt, &y1dr) ||
-                test_axis(&t, &self->rect2.x_axis, self->rect2.h_size.x, &xaxis1, &yaxis1, &x2dt, &x2dr) ||
-                test_axis(&t, &self->rect2.y_axis, self->rect2.h_size.y, &xaxis1, &yaxis1, &y2dt, &y2dr)
+            bool txsign, tysign;
+
+            float a1 = angle_from_axis(&self->rect1.x_axis);
+            float a2 = angle_from_axis(&self->rect2.x_axis);
+
+            if (test_axis(&t, &self->rect1.x_axis, self->rect1.h_size.x, &xaxis2, &yaxis2, &x1dt, &x1dr, &txsign) ||
+                test_axis(&t, &self->rect1.y_axis, self->rect1.h_size.y, &xaxis2, &yaxis2, &y1dt, &y1dr, &tysign) ||
+                test_axis(&t, &self->rect2.x_axis, self->rect2.h_size.x, &xaxis1, &yaxis1, &x2dt, &x2dr, NULL) ||
+                test_axis(&t, &self->rect2.y_axis, self->rect2.h_size.y, &xaxis1, &yaxis1, &y2dt, &y2dr, NULL)
                     ) {
                 col.z = 1.0f;
             }
             else {
+                PI_VECTOR2 pushback;
+                if (x1dt > y1dt){
+                    //a += x1dt - x2dt;
+                    float dist = x1dr - x1dt;
+                    if (txsign) {
+                        pushback = pi_vec2_muls(self->rect1.x_axis, dist);
+                    }
+                    else {
+                        pushback = pi_vec2_muls(self->rect1.x_axis, -dist);
+                    }
+                }
+                else {
+                    //a += y1dt - y2dt;
+                    float dist = y1dr - y1dt;
+                    if (tysign) {
+                        pushback = pi_vec2_muls(self->rect1.y_axis, dist);
+                    }
+                    else {
+                        pushback = pi_vec2_muls(self->rect1.y_axis, -dist);
+                    }
+                }
+                self->rect2angle = a2;
+                self->dirty.rect2angle = true;
+
+                self->rect2.position = pi_vec2_add(self->rect2.position, pushback);
+
+                update_rectangle(&self->rect1, &(PI_VECTOR4){ 0.0f, 0.0f, 0.0f, 0.0f });
+
+                #if 0
                 printf("%f %f  %f %f  %f %f  %f %f\n",
                             x1dt, x1dr, y1dt, y1dr,
                             x2dt, x2dr, y2dt, y2dr
                         );
+                #endif
             }
+                
         }
 
         update_rectangle(&self->rect2, &col);

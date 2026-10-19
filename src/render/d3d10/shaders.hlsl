@@ -111,6 +111,7 @@ PI_PSINPUT VSmain(PI_VSINPUT input)
         const PI_DIRLIGHT light = LIGHTS[i].dirlight;
         float diffuse = dot(light.direction.xyz, -normal);
         diffuse = max(diffuse, 0.0);
+        diffuse = pow(diffuse, 2.2);
 
         output.dif_color += diffuse * light.color.rgb * light.color.a;
     }
@@ -139,6 +140,7 @@ float4 PSmain(PI_PSINPUT input): SV_Target
             direction = normalize(direction);
             float diffuse = dot(direction, input.normal);
             diffuse = max(diffuse, 0.0);
+            diffuse = pow(diffuse, 2.2); // Diffuse has to be converted to linear space.
 
             float d = distance(light.position.xyz, input.worldpos);
             diffuse *= 1.0 - smoothstep(light.range - light.attenuation, light.range, d);

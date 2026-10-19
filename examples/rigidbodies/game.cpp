@@ -38,6 +38,7 @@ PI_GAME::PI_GAME():
 
     PI_RIGIDBODY_PROPERTIES* ground_properties = pi_get_rigid_body_properties(ground.hrigidbody);
     ground_properties->mass = 0.0f;
+
     PI_RIGIDBODY_PROPERTIES* cube_properties = pi_get_rigid_body_properties(falling_cube.hrigidbody);
     cube_properties->mass = 1.5f;
     cube_properties->force.x = 1.0f;
@@ -109,7 +110,6 @@ bool PI_GAME::_handle_key(const PI_KEYEVENT& event) noexcept
                 rbproperties->force.y = 2.0f;
             }
             break;
-
         case PI_KEYCODE_ESCAPE:
             if (event.press == PI_PRESS_DOWN) {
                 bool lock = pi_is_window_cursor_locked(event.hwindow);
@@ -140,8 +140,6 @@ bool PI_GAME::_handle_wheel(const PI_WHEELEVENT& event) noexcept
 
     return true;
 }
-
-#include <cstdio>
 
 void PI_GAME::_update_dirty() noexcept
 {

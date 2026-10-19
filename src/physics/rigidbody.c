@@ -113,17 +113,25 @@ bool pi_set_collision(PI_HRIGIDBODY hrigidbody, PI_COLLISION_TYPE type)
                 0.5f
             };
             break;
-        case PI_COLLISION_OBB:
-            hrigidbody->p_data->clproperties.obb.half_size = PI_INIT_STRUCT(PI_VECTOR3X){
-                0.5f, 0.5f, 0.5f
+        case PI_COLLISION_SPHERE:
+            hrigidbody->p_data->clproperties.sphere.origin = PI_INIT_STRUCT(PI_VECTOR3X){
+                0.0f,
+                0.0f,
+                0.0f
             };
-            hrigidbody->p_data->clproperties.obb.right = PI_INIT_STRUCT(PI_VECTOR3X){
-                1.0f, 0.0f, 0.0f
-            };
-            hrigidbody->p_data->clproperties.obb.up = PI_INIT_STRUCT(PI_VECTOR3X){
-                0.0f, 1.0f, 0.0f
-            };
+            hrigidbody->p_data->clproperties.sphere.radius = 0.5f;
             break;
+        //case PI_COLLISION_OBB:
+        //    hrigidbody->p_data->clproperties.obb.half_size = PI_INIT_STRUCT(PI_VECTOR3X){
+        //        0.5f, 0.5f, 0.5f
+        //    };
+        //    hrigidbody->p_data->clproperties.obb.right = PI_INIT_STRUCT(PI_VECTOR3X){
+        //        1.0f, 0.0f, 0.0f
+        //    };
+        //    hrigidbody->p_data->clproperties.obb.up = PI_INIT_STRUCT(PI_VECTOR3X){
+        //        0.0f, 1.0f, 0.0f
+        //    };
+        //    break;
         case PI_COLLISION_NONE:
             break;
         default:
@@ -195,7 +203,7 @@ static PI_RIGIDBODY_DATA* append_rigidbody_data(PI_HSYSTEMSCENE hsysscene)
     /* Default values for the properties */
     rbdata->rbproperties.mass = 0.0f;
     
-    rbdata->rbproperties.direction = PI_INIT_STRUCT(PI_VECTOR4){ 1.0f, 0.0f, 0.0f, 1.0f };
+    rbdata->rbproperties.angle = PI_INIT_STRUCT(PI_VECTOR3X){ 0.0f, 0.0f, 0.0f };
     rbdata->rbproperties.scale = PI_INIT_STRUCT(PI_VECTOR4){ 1.0f, 1.0f, 1.0f, 1.0f };
     rbdata->rbproperties.position = PI_INIT_STRUCT(PI_VECTOR3X){ 0.0f, 0.0f, 0.0f };
 

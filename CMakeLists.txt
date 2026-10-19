@@ -51,6 +51,7 @@ include(CheckIncludeFile)
 include(werror)
 
 target_include_directories(piengine_headers INTERFACE "${CMAKE_SOURCE_DIR}/include/")
+
 target_link_libraries(piengine_private INTERFACE piengine_headers Werror::Werror)
 target_link_libraries(piengine_private INTERFACE SDL3::SDL3)
 
@@ -62,3 +63,29 @@ target_link_libraries(piengine INTERFACE piengine_headers)
 #
 
 add_subdirectory(examples)
+
+
+#
+
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+    set(VERIFY_HEADERS_DEFAULT OFF)
+    if (CMAKE_EXPORT_COMPILE_COMMANDS)
+        set(VERIFY_HEADERS_DEFAULT ON)
+    endif()
+
+    option(PI_VERIFY_HEADERS "Verify public headers, which normally don't get checked individually (by let's say linters so you get include errors when accessing them), useful to avoid that and enabled by default if CMAKE_EXPORT_COMPILE_COMMANDS is ON." ${VERIFY_HEADERS_DEFAULT})
+endif()
+
+if (PI_VERIFY_HEADERS)
+    set_target_properties(piengine_headers PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON)
+    file(GLOB PI_HEADERS "include/piengine/*.h" "include/piengine/*.hpp")
+    target_sources(piengine_headers
+                    INTERFACE
+                    FILE_SET public_headers
+                    TYPE HEADERS
+                    BASE_DIRS "include/piengine/"
+                    FILES
+                    ${PI_HEADERS}
+                )
+endif()
+

@@ -69,7 +69,7 @@ namespace pi
                 const PI_VECTOR4& vx,
                 const PI_VECTOR4& vy,
                 const PI_VECTOR4& vz,
-                const PI_VECTOR4& vw
+                const PI_VECTOR4& vw=PI_VECTOR4{}
                 ):
            MATRIX_4X4{
                 vx.x, vx.y, vx.z, vx.w,
@@ -79,12 +79,6 @@ namespace pi
            } {}
         constexpr MATRIX_4X4(const PI_MATRIX_4X4& m):
             _m{ m } {}
-
-        /* Construct a MATRIX_4X4 with a function (usually one of the matrix functions in pi_math.h) that takes a "PI_MATRIX_4X4* dst" as the first argument. */
-        template <typename Fn, typename... Args>
-        explicit inline MATRIX_4X4(Fn&& fn, Args&&... args) {
-            fn(&_m, std::forward<Args>(args)...);
-        }
     public:
         constexpr PI_MATRIX_4X4& ref() { return _m; }
         constexpr const PI_MATRIX_4X4& ref() const { return _m; }

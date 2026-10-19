@@ -36,10 +36,12 @@ macro(BUILD_EXAMPLE name)
     target_link_libraries(${name} pi_examples_common)
 endmacro()
 
+BUILD_EXAMPLE(logging "main.c")
 BUILD_EXAMPLE(runtest "main.cpp")
 BUILD_EXAMPLE(modeltest "main.cpp" "tiny_obj.cc")
 BUILD_EXAMPLE(rigidbodies "main.cpp" "game.cpp" "player.cpp" "cube.cpp")
 BUILD_EXAMPLE(normals "main.cpp" "app.cpp")
+BUILD_EXAMPLE(spheres "main.cpp" "spheres.cpp")
 BUILD_EXAMPLE(2d-obbs "main.c" "app.c")
 
 COPY_ASSET(modeltest "guitarmodel.obj")

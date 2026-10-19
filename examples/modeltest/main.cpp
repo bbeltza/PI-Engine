@@ -1,6 +1,7 @@
 #include <piengine/pi_render.h>
 #include <piengine/pi_core.h>
 #include <piengine/pi_main.h>
+#include <piengine/pi_debug.h>
 
 #include "tiny_obj_loader.h"
 
@@ -40,7 +41,7 @@ private:
 
 PI_HMESH create_guitar_mesh(PI_HGAME hgame) noexcept
 {
-    std::puts("create_guitar_mesh: Loading guitar model...");
+    PI_INFO_STR("create_guitar_mesh: Loading guitar model...");
 
     tinyobj::ObjReaderConfig readerconfig;
     readerconfig.triangulate = true;
@@ -48,7 +49,7 @@ PI_HMESH create_guitar_mesh(PI_HGAME hgame) noexcept
     if (!reader.ParseFromFile("guitarmodel.obj", readerconfig
                 ) ) {
         if (!reader.Error().empty()) {
-            std::fprintf(stderr, "LOADING ERROR: %s", reader.Error().c_str());
+            PI_WARN_FMT("LOADING ERROR: %s", reader.Error().c_str());
         }
 
         return NULL;
@@ -120,7 +121,7 @@ PI_HMESH create_guitar_mesh(PI_HGAME hgame) noexcept
         }
     }
 
-    std::puts("create_guitar_mesh: Successfully loaded model!");
+    PI_INFO_STR("create_guitar_mesh: Successfully loaded model!");
     return pi_create_mesh_indexed(hgame,
             (int)vertices.size(), vertices.data(),
             (int)indices.size(), indices.data(),
@@ -185,7 +186,7 @@ PI_GAME::PI_GAME() noexcept:
     htriangle_instance = pi_add_scene_mesh(hscene, htriangle, NULL);
 
     pi_enable_scene(hscene, 0);
-    std::puts("GAME LOADED: Press E to switch between orthographic projection and perspective projection! (Currently using perspective projection)");
+    PI_INFO_STR("GAME LOADED: Press E to switch between orthographic projection and perspective projection! (Currently using perspective projection)");
 }
 
 bool PI_GAME::app_event(PI_EVENT& event) noexcept

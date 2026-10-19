@@ -9,16 +9,15 @@ GAME_PLAYER::GAME_PLAYER(PI_HGAME hgame, const PI_VECTOR3& position) noexcept:
     dirty_view{ true }
 {
     PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(hrigidbody);
-    properties->position = { position.x, position.y, position.z };
+    properties->position = PI_VECTOR3X{ position.x, position.y, position.z };
     properties->mass = 1.0f;
 
     pi_set_collision(hrigidbody, PI_COLLISION_AABB);
     PI_COLLISION_PROPERTIES* cproperties = pi_get_collision(hrigidbody);
-    cproperties->aabb.min = { -0.25f, 0.0f, -0.25f };
-    cproperties->aabb.max = { 0.25f, 1.5f, 0.25f };
+    cproperties->aabb.min = PI_VECTOR3X{ -0.25f, 0.0f, -0.25f };
+    cproperties->aabb.max = PI_VECTOR3X{  0.25f, 1.5f,  0.25f };
 }
 
-#include <cstdio>
 void GAME_PLAYER::update(float dt, const PI_VECTOR2& direction) noexcept
 {
     constexpr float PITCH_CLAMP = 89.0_degf;
@@ -54,8 +53,7 @@ void GAME_PLAYER::update(float dt, const PI_VECTOR2& direction) noexcept
         pi::MATRIX_4X4 m = { 
             right,
             up,
-            forward,
-            {}
+            forward
         };
         delta = pi_mulv_4x4(delta, &m);
         properties->position = pi_add_4(properties->position, delta);        
@@ -79,5 +77,5 @@ PI_VECTOR3X GAME_PLAYER::get_view_position() noexcept
     }
 
     PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(hrigidbody);
-    return pi_add_4(properties->position, { 0.0f, up, 0.0f, 0.0f });
+    return pi_add_4(properties->position, PI_VECTOR4{ 0.0f, up, 0.0f, 0.0f });
 }

@@ -19,6 +19,6 @@ GAME_CUBE::GAME_CUBE(PI_HGAME hgame, const PI_VECTOR3& position, const PI_VECTOR
 
     pi_set_collision(hrigidbody, PI_COLLISION_AABB);
     PI_COLLISION_PROPERTIES* clproperties = pi_get_collision(hrigidbody);
-    clproperties->aabb.min = { -0.5f, -0.5f, -0.5f };
-    clproperties->aabb.max = { 0.5f, 0.5f, 0.5f };
+    clproperties->aabb.min = PI_VECTOR3X{ -0.5f, -0.5f, -0.5f };
+    clproperties->aabb.max = PI_VECTOR3X{ 0.5f, 0.5f, 0.5f };
 }

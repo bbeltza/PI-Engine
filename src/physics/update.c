@@ -15,8 +15,6 @@ PI_EXTERN_C void fn_physics_pre_update(void* hsystem, PI_HSYSTEMSCENE hsysscenes
     }
 }
 
-//#include <stdio.h>
-
 static void update_transform(PI_RIGIDBODY_DATA* rbdata) {
     rbdata->rbproperties.position.w = 1.0f;
     *rbdata->p_transform = pi_scale_4x4(rbdata->rbproperties.scale.x,
