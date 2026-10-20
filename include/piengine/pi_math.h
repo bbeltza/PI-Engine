@@ -746,6 +746,28 @@ PI_INLINE_C PI_MATRIX_3X3* pi_transpose_3x3(PI_MATRIX_3X3* dst, const PI_MATRIX_
 /* Vector math API */
 
 #if PI_MATH_USE_SSE
+PI_INLINE_C PI_VECTOR4 _pi_vec4_lerp_sse(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
+    __m128 mmt = _mm_set1_ps(t);
+    __m128 mmdif = _mm_sub_ps(b.__xmm, a.__xmm);
+    mmdif = _mm_mul_ps(mmdif, mmt);
+    return PI_INIT_STRUCT(PI_VECTOR4){ _mm_add_ps(a.__xmm, mmdif) };
+}
+#endif
+
+PI_INLINE_C PI_VECTOR4 _pi_vec4_lerp_generic(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
+    return PI_INIT_STRUCT(PI_VECTOR4){
+        PI_LERP(a.x, b.x, t),
+        PI_LERP(a.y, b.y, t),
+        PI_LERP(a.z, b.z, t),
+        PI_LERP(a.w, b.w, t)
+    };
+}
+
+PI_INLINE_C PI_VECTOR4 pi_vec4_lerp(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
+    return _pi_vec4_lerp_generic(a, b, t);
+}
+
+#if PI_MATH_USE_SSE
 PI_INLINE_C PI_VECTOR4 _pi_max4_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_max_ps(v1.__xmm, v2.__xmm) };
 }
@@ -854,6 +876,16 @@ PI_INLINE_C float pi_vec4_length(PI_VECTOR4 v) {
         return _pi_vec4_length_sse(v);
     #endif
     return _pi_vec4_length_generic(v);
+}
+
+
+PI_INLINE_C PI_VECTOR4 _pi_vec4_reflect_generic(PI_VECTOR4 i, PI_VECTOR4 n) {
+    PI_VECTOR4 r = pi_mul_4s(n, 2 * pi_vector_dot4(i, n));
+    return pi_sub_4(i, r);
+}
+
+PI_INLINE_C PI_VECTOR4 pi_vec4_reflect(PI_VECTOR4 i, PI_VECTOR4 n) {
+    return _pi_vec4_reflect_generic(i, n);
 }
 
 

@@ -70,7 +70,7 @@ static float select_lowest(float v1, float v2, float* retabs) {
 
 typedef struct PI_COLLISIONPROP_AABB AABB;
 
-static bool aabb_intersect(const AABB* aabb1, AABB* aabb2, PI_VECTOR3X* p_push)
+static bool aabb_intersect(const AABB* aabb1, AABB* aabb2, float* p_push, PI_VECTOR3X* p_normal)
 {
     PI_VECTOR3X d1 = pi_sub_4(aabb1->max, aabb2->min);
     if (is_negative3x(d1))
@@ -87,18 +87,32 @@ static bool aabb_intersect(const AABB* aabb1, AABB* aabb2, PI_VECTOR3X* p_push)
             select_lowest(d1.y, d2.y, &abspush.y),
             select_lowest(d1.z, d2.z, &abspush.z)
         };
+        PI_VECTOR3X signvec = {
+                (signbit(push.x) ? -1.0f : 1.0f),
+                (signbit(push.y) ? -1.0f : 1.0f),
+                (signbit(push.z) ? -1.0f : 1.0f)
+        };
+        float min = PI_MIN(abspush.x, abspush.y);
+        min = PI_MIN(min, abspush.z);
+        *p_push = min;
 
-        float min = fminf(abspush.x, abspush.y);
-        min = fminf(min, abspush.z);
         #if PI_MATH_USE_SSE
             register __m128 minmm = _mm_set_ps1(min);
             register __m128 pmm = _mm_cmpeq_ps(abspush.__xmm, minmm);
-            *p_push = PI_INIT_STRUCT(PI_VECTOR3X){ _mm_and_ps(push.__xmm, pmm) };
+            *p_normal = PI_INIT_STRUCT(PI_VECTOR3X){ _mm_and_ps(
+                    signvec.__xmm,
+                    pmm
+                ) };
         #else
             *p_push = PI_INIT_STRUCT(PI_VECTOR3X){
                 push.x * (abspush.x == min),
                 push.y * (abspush.y == min),
                 push.z * (abspush.z == min)
+            };
+            *p_normal = PI_INIT_STRUCT(PI_VECTOR3X){
+                signvec.x * (abspush.x == min),
+                signvec.y * (abspush.y == min),
+                signvec.z * (abspush.z == min)
             };
         #endif
     }
@@ -138,6 +152,53 @@ static void get_weight_distro(float lmass, float rmass, float* lratio, float* rr
 
 /**/
 
+static void push_back_bodies(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar, float pushdist, PI_VECTOR3X lrnormal, PI_VECTOR3X rlnormal)
+{
+    float l, r;
+    get_weight_distro(datal->rbproperties.mass, datar->rbproperties.mass, &l, &r);
+
+    PI_VECTOR3X lfac = pi_mul_4s(lrnormal, l);
+    PI_VECTOR3X rfac = pi_mul_4s(rlnormal, r);
+    PI_VECTOR3X lpush = pi_mul_4s(lfac, pushdist);
+    PI_VECTOR3X rpush = pi_mul_4s(rfac, pushdist);
+    
+    datal->rbproperties.position = pi_add_4(datal->rbproperties.position, lpush);
+    datar->rbproperties.position = pi_add_4(datar->rbproperties.position, rpush);
+
+    float lforcemag = pi_vec4_length(datal->rbproperties.force);
+    float rforcemag = pi_vec4_length(datar->rbproperties.force);
+    
+    if (lforcemag) {
+        PI_VECTOR3X normalizedforce = pi_mul_4s(datal->rbproperties.force, 1/lforcemag);
+        PI_VECTOR3X newforce = pi_vec4_reflect(normalizedforce, lrnormal);
+
+            /* REMINDER: pi_vec4_reflect gets the dot product of these two vectors. Could also get the dot product from there? */
+        float normalproj = pi_vector_dot4(datal->rbproperties.force, lrnormal);
+        /*
+         * -1: Cancel all of the force
+         *  0: Keep all of the force
+         *  1: Give part of the force
+         *  */
+        float newforcemag = lforcemag + (lforcemag*PI_CLAMP(normalproj, -1.0f, 0.0f));
+        newforce = pi_mul_4s(newforce, newforcemag);
+
+        datal->rbproperties.force = newforce;
+    }
+    if (rforcemag) {
+        PI_VECTOR3X normalizedforce = pi_mul_4s(datar->rbproperties.force, 1/rforcemag);
+        PI_VECTOR3X newforce = pi_vec4_reflect(normalizedforce, rlnormal);
+        float normalproj = pi_vector_dot4(datar->rbproperties.force, rlnormal);
+        float newforcemag = rforcemag + (rforcemag*PI_CLAMP(normalproj, -1.0f, 0.0f));
+        newforce = pi_mul_4s(newforce, newforcemag);
+
+        datar->rbproperties.force = newforce;
+    }
+
+}
+
+
+/**/
+
 static void aabb_vs_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
 {
     PI_ASSERT(datal->clproperties.type == PI_COLLISION_AABB);
@@ -159,39 +220,16 @@ static void aabb_vs_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
                 pi_mul_4(datar->rbproperties.scale, datar->clproperties.aabb.max))
     };
 
-    PI_VECTOR3X push;
-    if (aabb_intersect(&worldspacel, &worldspacer, &push)) {
+    float push;
+    PI_VECTOR3X normal;
+    if (aabb_intersect(&worldspacel, &worldspacer, &push, &normal)) {
         if (datal->p_dirtyflag) {
             *datal->p_dirtyflag |= 1;
         }
-        if (!datar->rbproperties.mass) {
-            datal->rbproperties.position = pi_add_4(datal->rbproperties.position, push);
-            datal->rbproperties.force = push;
-        }
-        else {
-            float r;
-            float l;
-            get_weight_distro(datal->rbproperties.mass, datar->rbproperties.mass, &l, &r);
 
-            PI_VECTOR3X lpush = pi_mul_4s(push, l);
-            PI_VECTOR3X rpush = pi_mul_4s(push, r);
-            datal->rbproperties.position = pi_add_4(datal->rbproperties.position, lpush);
-            datar->rbproperties.position = pi_sub_4(datar->rbproperties.position, rpush);
-
-            PI_VECTOR3X* force = &datal->rbproperties.force;
-            PI_VECTOR3X momentum = pi_mul_4s(datal->rbproperties.force, l);
-            PI_VECTOR3X addedforce = pi_add_4(momentum, rpush);
-            if (rpush.x)
-                force->x = addedforce.x;
-            if (rpush.y)
-                force->y = addedforce.y;
-            if (rpush.z)
-                force->z = addedforce.z;
-        }
+        push_back_bodies(datal, datar, push, normal, pi_unary_4(normal));
     }
 }
-
-#include <piengine/pi_debug.h>
 
 static void aabb_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
 {
@@ -226,15 +264,7 @@ static void aabb_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
         dist.w = 0.0f;
 
         PI_VECTOR3X dist_normalized = *pi_vector_normalize4(&dist_normalized, dist);
-        PI_VECTOR3X push = pi_mul_4s(dist_normalized, dmin);
         PI_VECTOR3X dirmask = dist_normalized;
-
-        float l, r;
-        get_weight_distro(datal->rbproperties.mass, datar->rbproperties.mass, &l, &r);
-        
-        PI_VECTOR3X pushl = pi_mul_4s(push, l);
-        PI_VECTOR3X pushr = pi_mul_4s(push, r);
-        
         PI_VECTOR3X dirabs = {
             fabsf(dist_normalized.x/halfl.x),
             fabsf(dist_normalized.y/halfl.y),
@@ -244,44 +274,16 @@ static void aabb_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
         float max = PI_MAX(dirabs.x, dirabs.y);
         max = PI_MAX(max, dirabs.z);
         if (max != dirabs.x) {
-            pushr.x = 0.0f;
             dirmask.x = 0.0f;
         }
         if (max != dirabs.y) {
-            pushr.y = 0.0f;
             dirmask.y = 0.0f;
         }
         if (max != dirabs.z) {
-            pushr.z = 0.0f;
             dirmask.z = 0.0f;
         }
 
-        datar->rbproperties.position = pi_add_4(datar->rbproperties.position, pushr);
-        datal->rbproperties.position = pi_sub_4(datal->rbproperties.position, pushl);
-
-
-        if (datal->rbproperties.mass) {
-            PI_VECTOR3X* force = &datal->rbproperties.force;
-            PI_VECTOR3X drag = dist_normalized;
-            drag = pi_mul_4s(drag, l);
-
-            PI_VECTOR3X momentum = pi_mul_4s(*force, r);
-            *force = pi_sub_4(momentum, drag);
-        }
-        if (datar->rbproperties.mass) {
-            PI_VECTOR3X* force = &datar->rbproperties.force;
-            PI_VECTOR3X drag = dirmask;
-            drag = pi_mul_4s(drag, l);
-            PI_VECTOR3X momentum = pi_mul_4s(*force, r);
-            PI_VECTOR3X added = pi_add_4(momentum, drag);
-            if (drag.x)
-                force->x = added.x;
-            if (signbit(drag.y) == signbit(force->y))
-                force->y = added.y;
-            if (drag.z)
-                force->z = added.z;
-        }
-        //PI_INFO_FMT("COLLIDING!!! (dmin: %f) (radius: %f)", dmin, radius);
+        push_back_bodies(datal, datar, dmin, pi_unary_4(dist_normalized), dirmask);
     }
 }
 
@@ -303,24 +305,7 @@ static void sphere_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
         PI_VECTOR3X dist_normalized;
         pi_vector_normalize4(&dist_normalized, dist);
 
-        PI_VECTOR3X push = pi_mul_4s(dist_normalized, lendif);
-
-        float r, l;
-        get_weight_distro(datal->rbproperties.mass, datar->rbproperties.mass, &l, &r);
-
-        PI_VECTOR3X pushr = pi_mul_4s(push, r);
-        push = pi_mul_4s(push, l);
-        datal->rbproperties.position = pi_add_4(datal->rbproperties.position, push);
-        datar->rbproperties.position = pi_sub_4(datar->rbproperties.position, pushr);
-
-        if (datal->rbproperties.mass) {
-            PI_VECTOR3X* force = &datal->rbproperties.force;
-            PI_VECTOR3X drag = *pi_vector_normalize4(&drag, push);
-            drag = pi_mul_4s(drag, r);
-
-            PI_VECTOR3X momentum = pi_mul_4s(*force, r);
-            *force = pi_add_4(momentum, drag);
-        }
+        push_back_bodies(datal, datar, lendif, dist_normalized, pi_unary_4(dist_normalized));
     }
 }
 

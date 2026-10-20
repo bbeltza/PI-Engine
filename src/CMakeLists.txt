@@ -26,6 +26,16 @@ BUILD_SYSTEM(core "debug.c" "alloc.c" "main.c" "core.c")
 BUILD_SYSTEM(render "render.cpp" "worldenv.cpp" "scene.cpp" "mesh.cpp" "instance.cpp" "light.cpp" "update.cpp")
 BUILD_SYSTEM(physics "physics.c" "scene.c" "rigidbody.c" "collision.c" "update.c" "calc.c")
 
+if (UNIX)
+    set(PI_IO_SOURCES "io_unix.c")
+elseif (WIN32)
+    set(PI_IO_SOURCES "io_win32.c")
+else ()
+    message(FATAL_ERROR "Unsupported platform for IO. bbeltza MUST write an implementation for it. If you get this issue, please drop an issue. Thanks.")
+endif()
+
+BUILD_SYSTEM(io ${PI_IO_SOURCES})
+
 #
 
 check_include_file("d3d10.h" HAVE_D3D10_H)

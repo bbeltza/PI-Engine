@@ -3,6 +3,7 @@
 
 #include <piengine/pi_main.h>
 #include <piengine/pi_core.h>
+#include <piengine/pi_debug.h>
 
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_events.h>

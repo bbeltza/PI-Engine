@@ -65,14 +65,18 @@
     #define PI_REGISTER register
 #endif
 
-
-
 #define PI_PARAM_DEFAULT PI_MEMBER_DEFAULT
 
 /* Typedefs */
 
 typedef struct PI_GAME *PI_HGAME;
 typedef struct PI_SCENE_IMPL *PI_HSCENE;
+
+#ifdef SSIZE_MAX
+    typedef ssize_t PI_SSIZE;
+#else
+    typedef ptrdiff_t PI_SSIZE;
+#endif
 
 /* Memory management */
 

@@ -2,6 +2,8 @@
 
 #include <piengine/pi_math.hpp>
 
+#include <common/cube.h>
+
 static PI_HWORLDENV create_worldenv(PI_HGAME hgame) noexcept;
 static PI_HSCENE create_scene(PI_HGAME hgame) noexcept;
 static PI_HMESH create_sphere_mesh(PI_HGAME hgame) noexcept;
@@ -9,11 +11,22 @@ static PI_HMESH create_sphere_mesh(PI_HGAME hgame) noexcept;
 PI_GAME::PI_GAME():
     hworldenv{ create_worldenv(this) },
     hscene{ create_scene(this) },
-    hsphere{ create_sphere_mesh(this) },
 
-    sphere1{ this, { -1.0, 0.0f, 0.0f, 0.0f }, 1.0f},
-    sphere2{ this, {  1.0, 0.0f, 0.0f, 0.0f }, 0.6f}
+    hsphere{ create_sphere_mesh(this) },
+    hcube{ pi_create_mesh_indexed(this,
+                PI_ARRAYSIZE(common::CUBE_VERTICES), common::CUBE_VERTICES,
+                PI_ARRAYSIZE(common::CUBE_INDICES), common::CUBE_INDICES,
+                common::CUBE_INDEX_TYPE
+            ) },
+
+    ground{ this, PI_VECTOR3X{ 0.0f, -2.0f, 0.0f }, PI_VECTOR3X{ 6.0f, 1.0f, 1.0f } }
 {
+    spheres.reserve(33);
+    constexpr float gap = 0.1f;
+    size_t num_spheres = spheres.capacity();
+    for (size_t i = 0; i < num_spheres; i++) {
+        spheres.emplace_back(this, PI_VECTOR3X{ (i-num_spheres*0.5f)*gap, 2.5f, 0.0f }, 0.1f);
+    }
 
     pi::MATRIX_4X4 m;
     m(pi_look_at, PI_VECTOR3X{ 0.0f, 0.0f, -4.0f },
@@ -36,7 +49,7 @@ PI_GAME::PI_GAME():
     pi_add_light(hscene, PI_LIGHT_DIRECTIONAL, &l);
 
     PI_LIGHT_PROPERTIES lightprops{
-        { 0.03f, 0.03f, 0.04f, 1.0f },
+        { 0.3f, 0.3f, 0.4f, 1.0f },
             { 0.0f, 0.0f, -4.0f },
             22.0f,
             { 1.0f, 1.0f, 0.9f, 0.9f }
@@ -83,42 +96,9 @@ bool PI_GAME::app_event(const PI_EVENT& event) noexcept
 }
 bool PI_GAME::app_update() noexcept
 {
-    sphere1.set_dirty_flag();
-    float dt = pi_get_runtime_dtf(this);
-    float SPEED = 3.0f;
-    if ((keys.d ^ keys.a) || (keys.w ^ keys.s)) {
-        PI_VECTOR3X vel{
-            static_cast<float>(keys.d - keys.a),
-            static_cast<float>(keys.w - keys.s),
-            0.0f,
-            0.0f
-        };
-        pi_vector_normalize4(&vel, vel);
-
-        PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(sphere1.hrigidbody);
-        properties->position += vel * dt * SPEED;
-        PI_CLAMPX(properties->position.x, -3.0f, 3.0f);
-        PI_CLAMPX(properties->position.y, -2.0f, 2.0f);
-        sphere1.set_dirty_flag();
+    for (auto& sphere : spheres) {
+        sphere.update();
     }
-    if ((keys.right ^ keys.left) || (keys.up ^ keys.down)) {
-        PI_VECTOR3X vel{
-            static_cast<float>(keys.right - keys.left),
-            static_cast<float>(keys.up - keys.down),
-            0.0f,
-            0.0f
-        };
-        pi_vector_normalize4(&vel, vel);
-
-        PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(sphere2.hrigidbody);
-        properties->position += vel * dt * SPEED;
-        PI_CLAMPX(properties->position.x, -3.0f, 3.0f);
-        PI_CLAMPX(properties->position.y, -2.0f, 2.0f);
-        sphere2.set_dirty_flag();
-    }
-
-    sphere1.update();
-    sphere2.update();
     return true;
 }
 
@@ -254,7 +234,7 @@ static PI_HMESH create_sphere_mesh(PI_HGAME hgame) noexcept
     const int num_indices = 32*32*6;
     int indices[ num_indices ];
 
-    auto verts = generate_sphere_mesh(1, 32, 32, indices, true);
+    auto verts = generate_sphere_mesh(1, 32, 32, indices, false);
     //return pi_create_mesh(hgame, (int)verts.size(), verts.data());
     return pi_create_mesh_indexed(hgame, (int)verts.size(), verts.data(), num_indices, indices, PI_INDEX_U32);
 }
@@ -267,7 +247,7 @@ SPHERE::SPHERE(PI_HGAME hgame, const PI_VECTOR3X& start_position, float radius) 
 {
     PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(hrigidbody);
     properties->position = start_position;
-    properties->scale = { radius, radius, radius, 1.0f };
+    properties->scale = PI_VECTOR4{ radius, radius, radius, 1.0f };
     properties->mass = 1.0f;
 
     pi_set_collision(hrigidbody, PI_COLLISION_SPHERE);
@@ -283,4 +263,31 @@ void SPHERE::update() noexcept
         m_dirtyflag = false;
         pi_update_mesh_instance(hinstance, &m_instance);
     }
+}
+
+static PI_INSTANCE* acquire_instance_ptr(const PI_VECTOR3X& position, const PI_VECTOR3X& scale) noexcept
+{
+    static thread_local PI_INSTANCE s_threadlocal_instance;
+
+    s_threadlocal_instance.transform = PI_MATRIX_4X4{
+        scale.x, 0.0f, 0.0f, 0.0f,
+        0.0f, scale.y, 0.0f, 0.0f,
+        0.0f, 0.0f, scale.z, 0.0f,
+        position.x, position.y, position.z, 1.0f
+    };
+    return &s_threadlocal_instance;
+}
+
+CUBE::CUBE(PI_HGAME hgame, const PI_VECTOR3X& position, const PI_VECTOR3X& scale) noexcept:
+    m_hrigidbody{ pi_add_rigid_body(hgame->hscene) },
+    m_hinstance{ pi_add_scene_mesh(hgame->hscene, hgame->hcube, acquire_instance_ptr(position, scale)) }
+{
+    pi_set_collision(m_hrigidbody, PI_COLLISION_AABB);
+
+    PI_RIGIDBODY_PROPERTIES* rbproperties = pi_get_rigid_body_properties(m_hrigidbody);
+    rbproperties->mass = 0.0f;
+    rbproperties->position = position;
+    rbproperties->scale = scale;
+
+    //PI_COLLISION_PROPERTIES* clproperties = pi_get_collision(m_hrigidbody);
 }
