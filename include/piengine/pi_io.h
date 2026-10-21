@@ -34,7 +34,7 @@ typedef int PI_IOACCESS;
 #ifndef __unix__
     PI_EXTERN_C PI_HSYSIO pi_io_getconsole_handle(PI_IO_CONSOLE console);
 #else
-    #define pi_io_getconsole_handle(console) ( ((unsigned)(console)) > PI_IO_STDERR ? -1 : (PI_HSYSIO)(console) )
+    #define pi_io_getconsole_handle(console) ( ((unsigned)(console)) > PI_IO_STDERR ? PI_INVALID_HIO : (PI_HSYSIO)(console) )
 #endif
 
 #if defined(__unix__) || defined(_WIN32)

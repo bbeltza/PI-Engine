@@ -1,6 +1,8 @@
 #include "physics_internal.h"
 #include <piengine/pi_math.h>
 
+#include <limits.h>
+
 static void update_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar);
 static void update_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar);
 //static void update_obb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar);
@@ -15,14 +17,35 @@ void _physics_update_collision(PI_HSYSTEMSCENE hscene, PI_HRIGIDBODY rigidbody)
     if (hscene->rbdata_count == 1) {
         return;
     }
+    
+    PI_ASSERT((hscene->rbdata_count + CHAR_BIT-1)/CHAR_BIT <= data->clmask_capacity);
+
+    size_t _datai = data - hscene->rbdata;
+    PI_ASSERT(_datai < hscene->rbdata_count);
+    unsigned datai = (unsigned)_datai;
+    unsigned bitl = datai % CHAR_BIT;
+    unsigned maskil = datai / CHAR_BIT;
+    unsigned cmpmaskl = 0x1 << bitl;
 
     PI_RIGIDBODY_DATA* scenedata = hscene->rbdata;
     for (unsigned i = 0; i < hscene->rbdata_count; i++, scenedata++)
     {
         if (data == scenedata)
             continue;
-        if (data->clproperties.type == PI_COLLISION_NONE)
+        if (scenedata->clproperties.type == PI_COLLISION_NONE)
             continue;
+
+        unsigned bitr = i % CHAR_BIT;
+        unsigned maskir = i / CHAR_BIT;
+        unsigned cmpmaskr = 0x1 << bitr;
+        PI_ASSERT((hscene->rbdata_count + CHAR_BIT-1)/CHAR_BIT <= scenedata->clmask_capacity);
+        if (scenedata->clmask[maskil] & cmpmaskl) {
+            PI_ASSERT(data->clmask[maskir] & cmpmaskr);
+            continue;
+        }
+
+        scenedata->clmask[maskil] |= cmpmaskl;
+        data->clmask[maskir] |= cmpmaskr;
 
         switch (data->clproperties.type) {
             case PI_COLLISION_AABB:

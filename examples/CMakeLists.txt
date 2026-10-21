@@ -2,6 +2,7 @@ project(pi_examples_common)
 
 add_library(pi_examples_common STATIC
                 "common/cube.c"
+                "common/sphere.cpp"
             )
 
 target_link_libraries(pi_examples_common PUBLIC piengine Werror::Werror)
@@ -42,6 +43,7 @@ BUILD_EXAMPLE(modeltest "main.cpp" "tiny_obj.cc")
 BUILD_EXAMPLE(rigidbodies "main.cpp" "game.cpp" "player.cpp" "cube.cpp")
 BUILD_EXAMPLE(normals "main.cpp" "app.cpp")
 BUILD_EXAMPLE(spheres "main.cpp" "spheres.cpp")
+BUILD_EXAMPLE(spheres2 "main.cpp" "spheres.cpp")
 BUILD_EXAMPLE(2d-obbs "main.c" "app.c")
 
 COPY_ASSET(modeltest "guitarmodel.obj")

@@ -17,6 +17,9 @@ typedef struct PI_RIGIDBODY_DATA
 
     PI_MATRIX_4X4* p_transform;
     uint8_t* p_dirtyflag;
+
+    size_t clmask_capacity;
+    uint8_t* clmask;
 } PI_RIGIDBODY_DATA;
 
 typedef struct PI_SYSTEM_SCENE

@@ -34,6 +34,8 @@ void pi_remove_rigid_body(PI_HRIGIDBODY hrigidbody)
 
     unsigned curindex = (unsigned)(hrigidbody->p_data - hrigidbody->hscene->rbdata);
     PI_ASSERT(curindex < hrigidbody->hscene->rbdata_count);
+
+    PI_FREE(hrigidbody->p_data->clmask);
     /* We want to add `curindex` to the freelist. */
     unsigned pos = hrigidbody->hscene->rbfreelist_first - 1;
     if (pos >= hrigidbody->hscene->rbfreelist_last) {
@@ -212,6 +214,8 @@ static PI_RIGIDBODY_DATA* append_rigidbody_data(PI_HSYSTEMSCENE hsysscene)
     rbdata->clproperties.type = PI_COLLISION_NONE;
     rbdata->p_transform = NULL;
     rbdata->p_dirtyflag = NULL;
+    rbdata->clmask = NULL;
+    rbdata->clmask_capacity = 0;
     return rbdata;
 }
 

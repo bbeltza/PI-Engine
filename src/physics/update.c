@@ -2,6 +2,8 @@
 
 #include <piengine/pi_math.h>
 
+#include <limits.h>
+
 static void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hsysscene, float dt);
 static void update_freelists(PI_HSYSTEMSCENE hscene);
 
@@ -29,6 +31,25 @@ static void update_transform(PI_RIGIDBODY_DATA* rbdata) {
 void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene, float dt)
 {
     update_freelists(hscene);
+
+    /* Update collision masks */
+    for (unsigned i = 0; i < hscene->rbdata_count; i++) {
+        PI_RIGIDBODY_DATA* rbdata = &hscene->rbdata[i];
+        if (rbdata->clproperties.type == PI_COLLISION_NONE)
+            continue;
+
+        unsigned maskcount = (hscene->rbdata_count + CHAR_BIT-1)/CHAR_BIT;
+        if (rbdata->clmask_capacity < maskcount) {
+            rbdata->clmask_capacity = maskcount;
+            
+            PI_FREE(rbdata->clmask);
+            rbdata->clmask = PI_ALLOC(maskcount, PI_ALLOC_ZERO);
+        }
+        else {
+            memset(rbdata->clmask, 0x00, maskcount);
+        }
+    }
+
 
     PI_HRIGIDBODY curhrigidbody = hscene->rbhead;
     while (curhrigidbody) {

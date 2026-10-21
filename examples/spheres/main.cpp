@@ -1,3 +1,6 @@
+#ifndef APPNAME
+    #define APPNAME "Sphere Example!"
+#endif
 
 #include <piengine/pi_main.h>
 #include "spheres.hpp"
@@ -28,7 +31,7 @@ int main(int argc, char* argv[])
         }
     };
     PI_APPINFO appinfo = {
-        "Sphere Example",
+        APPNAME,
         &callbacks
     };
     

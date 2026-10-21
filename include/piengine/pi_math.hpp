@@ -30,6 +30,10 @@ namespace pi
         inline const PI_VECTOR3& to_vec3() const {
             return reinterpret_cast<const PI_VECTOR3&>(_v);
         }
+
+        constexpr bool zero() const {
+            return !_v.x && !_v.y && !_v.z && !_v.w;
+        }
     public:
         constexpr operator PI_VECTOR4&() { return _v; }
         constexpr operator const PI_VECTOR4&() const { return _v; }
@@ -39,6 +43,8 @@ namespace pi
 
         constexpr PI_VECTOR4* operator &() { return &_v; }
         constexpr const PI_VECTOR4* operator &() const { return &_v; }
+
+        constexpr operator bool() const { return !zero(); }
     public:
         constexpr float& operator [](size_t i) {
             return _v.arr[i];
