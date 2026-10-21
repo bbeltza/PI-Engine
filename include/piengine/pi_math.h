@@ -2,6 +2,7 @@
 #define PI_MATH_H
 
 #include <piengine/pi_scalars.h>
+#include <math.h>
 
 /* Basic scalar API */
 
@@ -15,11 +16,11 @@
 #define PI_MAX(x, y) ( (x) > (y) ? (x) : (y) )
 #define PI_MIN(x, y) ( (x) < (y) ? (x) : (y) )
 
-/* Base vector API */
+/* Vector Math API */
 
     /* Vector addition */
 
-PI_INLINE_C PI_VECTOR4 _pi_add_4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_add_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     return PI_INIT_STRUCT(PI_VECTOR4) {
         v1.x + v2.x,
         v1.y + v2.y,
@@ -29,20 +30,20 @@ PI_INLINE_C PI_VECTOR4 _pi_add_4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_add_4_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_add_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_add_ps(v1.__xmm, v2.__xmm) };
 }
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_add_4(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 pi_vec4_add(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     #if PI_MATH_USE_SSE
-        return _pi_add_4_sse(v1, v2);
+        return _pi_vec4_add_sse(v1, v2);
     #endif
-    return _pi_add_4_generic(v1, v2);
+    return _pi_vec4_add_generic(v1, v2);
 }
 
 
-PI_INLINE_C PI_VECTOR4 _pi_add_4s_generic(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_adds_generic(PI_VECTOR4 v, float s) {
     return PI_INIT_STRUCT(PI_VECTOR4){
         v.x + s,
         v.y + s,
@@ -52,22 +53,22 @@ PI_INLINE_C PI_VECTOR4 _pi_add_4s_generic(PI_VECTOR4 v, float s) {
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_add_4s_sse(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_adds_sse(PI_VECTOR4 v, float s) {
     __m128 v2 = _mm_set_ps(s, s, s, s);
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_add_ps(v.__xmm, v2) };
 }
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_add_4s(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 pi_vec4_adds(PI_VECTOR4 v, float s) {
     #if PI_MATH_USE_SSE
-        return _pi_add_4s_sse(v, s);
+        return _pi_vec4_adds_sse(v, s);
     #endif
-    return _pi_add_4s_generic(v, s);
+    return _pi_vec4_adds_generic(v, s);
 }
 
     /* Vector subtraction */
 
-PI_INLINE_C PI_VECTOR4 _pi_sub_4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_sub_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     return PI_INIT_STRUCT(PI_VECTOR4) {
         v1.x - v2.x,
         v1.y - v2.y,
@@ -77,20 +78,20 @@ PI_INLINE_C PI_VECTOR4 _pi_sub_4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_sub_4_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_sub_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_sub_ps(v1.__xmm, v2.__xmm) };
 }
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_sub_4(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 pi_vec4_sub(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     #if PI_MATH_USE_SSE
-        return _pi_sub_4_sse(v1, v2);
+        return _pi_vec4_sub_sse(v1, v2);
     #endif
-    return _pi_sub_4_generic(v1, v2);
+    return _pi_vec4_sub_generic(v1, v2);
 }
 
 
-PI_INLINE_C PI_VECTOR4 _pi_sub_4s_generic(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_subs_generic(PI_VECTOR4 v, float s) {
     return PI_INIT_STRUCT(PI_VECTOR4){
         v.x - s,
         v.y - s,
@@ -100,22 +101,22 @@ PI_INLINE_C PI_VECTOR4 _pi_sub_4s_generic(PI_VECTOR4 v, float s) {
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_sub_4s_sse(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_subs_sse(PI_VECTOR4 v, float s) {
     __m128 v2 = _mm_set_ps(s, s, s, s);
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_sub_ps(v.__xmm, v2) };
 }
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_sub_4s(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 pi_vec4_subs(PI_VECTOR4 v, float s) {
     #if PI_MATH_USE_SSE
-        return _pi_sub_4s_sse(v, s);
+        return _pi_vec4_subs_sse(v, s);
     #endif
-    return _pi_sub_4s_generic(v, s);
+    return _pi_vec4_subs_generic(v, s);
 }
 
     /* Reverse scalar division */
 
-PI_INLINE_C PI_VECTOR4 _pi_sub_4si_generic(float s, PI_VECTOR4 v) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_subsi_generic(float s, PI_VECTOR4 v) {
     return PI_INIT_STRUCT(PI_VECTOR4){
         s - v.x,
         s - v.y,
@@ -125,22 +126,22 @@ PI_INLINE_C PI_VECTOR4 _pi_sub_4si_generic(float s, PI_VECTOR4 v) {
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_sub_4si_sse(float s, PI_VECTOR4 v) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_subsi_sse(float s, PI_VECTOR4 v) {
     __m128 v2 = _mm_set_ps(s, s, s, s);
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_sub_ps(v2, v.__xmm) };
 }
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_sub_4si(float s, PI_VECTOR4 v) {
+PI_INLINE_C PI_VECTOR4 pi_vec4_subsi(float s, PI_VECTOR4 v) {
     #if PI_MATH_USE_SSE
-        return _pi_sub_4si_sse(s, v);
+        return _pi_vec4_subsi_sse(s, v);
     #endif
-    return _pi_sub_4si_generic(s, v);
+    return _pi_vec4_subsi_generic(s, v);
 }
 
     /* Vector multiplication */
 
-PI_INLINE_C PI_VECTOR4 _pi_mul_4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_mul_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     return PI_INIT_STRUCT(PI_VECTOR4) {
         v1.x * v2.x,
         v1.y * v2.y,
@@ -150,20 +151,20 @@ PI_INLINE_C PI_VECTOR4 _pi_mul_4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_mul_4_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_mul_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_mul_ps(v1.__xmm, v2.__xmm) };
 }
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_mul_4(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+PI_INLINE_C PI_VECTOR4 pi_vec4_mul(PI_VECTOR4 v1, PI_VECTOR4 v2) {
     #if PI_MATH_USE_SSE
-        return _pi_mul_4_sse(v1, v2);
+        return _pi_vec4_mul_sse(v1, v2);
     #endif
-    return _pi_mul_4_generic(v1, v2);
+    return _pi_vec4_mul_generic(v1, v2);
 }
 
 
-PI_INLINE_C PI_VECTOR4 _pi_mul_4s_generic(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_muls_generic(PI_VECTOR4 v, float s) {
     return PI_INIT_STRUCT(PI_VECTOR4){
         v.x * s,
         v.y * s,
@@ -173,17 +174,17 @@ PI_INLINE_C PI_VECTOR4 _pi_mul_4s_generic(PI_VECTOR4 v, float s) {
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_mul_4s_sse(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_muls_sse(PI_VECTOR4 v, float s) {
     __m128 v2 = _mm_set_ps(s, s, s, s);
     return PI_INIT_STRUCT(PI_VECTOR4){ _mm_mul_ps(v.__xmm, v2) };
 }
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_mul_4s(PI_VECTOR4 v, float s) {
+PI_INLINE_C PI_VECTOR4 pi_vec4_muls(PI_VECTOR4 v, float s) {
     #if PI_MATH_USE_SSE
-        return _pi_mul_4s_sse(v, s);
+        return _pi_vec4_muls_sse(v, s);
     #endif
-    return _pi_mul_4s_generic(v, s);
+    return _pi_vec4_muls_generic(v, s);
 }
 
     /* There's no vector division... Who needs it anyways? */
@@ -192,7 +193,7 @@ PI_INLINE_C PI_VECTOR4 pi_mul_4s(PI_VECTOR4 v, float s) {
     /**/
 
 
-PI_INLINE_C PI_VECTOR4 _pi_unary_4_generic(PI_VECTOR4 v) {
+PI_INLINE_C PI_VECTOR4 _pi_vec4_unary_generic(PI_VECTOR4 v) {
     return PI_INIT_STRUCT(PI_VECTOR4){
         -v.x,
         -v.y,
@@ -203,7 +204,7 @@ PI_INLINE_C PI_VECTOR4 _pi_unary_4_generic(PI_VECTOR4 v) {
 
 #if PI_MATH_USE_SSE
 
-PI_INLINE_C PI_VECTOR4 _pi_unary_4_sse(PI_VECTOR4 v)
+PI_INLINE_C PI_VECTOR4 _pi_vec4_unary_sse(PI_VECTOR4 v)
 {
     /* This usually should be faster than what most compilers do:
         *  Load a constant from memory and perform a xor operation to invert the sign of the floats
@@ -218,12 +219,12 @@ PI_INLINE_C PI_VECTOR4 _pi_unary_4_sse(PI_VECTOR4 v)
 #endif
 
     /* Return -v, the oposite of the vector `v` */
-PI_INLINE_C PI_VECTOR4 pi_unary_4(PI_VECTOR4 v)
+PI_INLINE_C PI_VECTOR4 pi_vec4_unary(PI_VECTOR4 v)
 {
     #if PI_MATH_USE_SSE
-        return _pi_unary_4_sse(v);
+        return _pi_vec4_unary_sse(v);
     #endif
-    return _pi_unary_4_generic(v);
+    return _pi_vec4_unary_generic(v);
 }
 
 
@@ -343,34 +344,263 @@ PI_INLINE_C PI_VECTOR2 pi_vec2_muls(PI_VECTOR2 v, float s) {
     return _pi_vec2_muls_generic(v, s);
 }
 
-/* Base matrix API */
+    /* More complex operations */
 
-PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_generic(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
-{
-    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
-        l->xx*r->xx + l->yx*r->xy + l->zx*r->xz + l->wx*r->xw,
-        l->xy*r->xx + l->yy*r->xy + l->zy*r->xz + l->wy*r->xw,
-        l->xz*r->xx + l->yz*r->xy + l->zz*r->xz + l->wz*r->xw,
-        l->xw*r->xx + l->yw*r->xy + l->zw*r->xz + l->ww*r->xw,
+    /* Lerp */
 
-        l->xx*r->yx + l->yx*r->yy + l->zx*r->yz + l->wx*r->yw,
-        l->xy*r->yx + l->yy*r->yy + l->zy*r->yz + l->wy*r->yw,
-        l->xz*r->yx + l->yz*r->yy + l->zz*r->yz + l->wz*r->yw,
-        l->xw*r->yx + l->yw*r->yy + l->zw*r->yz + l->ww*r->yw,
+#if PI_MATH_USE_SSE
+PI_INLINE_C PI_VECTOR4 _pi_vec4_lerp_sse(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
+    __m128 mmt = _mm_set1_ps(t);
+    __m128 mmdif = _mm_sub_ps(b.__xmm, a.__xmm);
+    mmdif = _mm_mul_ps(mmdif, mmt);
+    return PI_INIT_STRUCT(PI_VECTOR4){ _mm_add_ps(a.__xmm, mmdif) };
+}
+#endif
 
-        l->xx*r->zx + l->yx*r->zy + l->zx*r->zz + l->wx*r->zw,
-        l->xy*r->zx + l->yy*r->zy + l->zy*r->zz + l->wy*r->zw,
-        l->xz*r->zx + l->yz*r->zy + l->zz*r->zz + l->wz*r->zw,
-        l->xw*r->zx + l->yw*r->zy + l->zw*r->zz + l->ww*r->zw,
-
-        l->xx*r->wx + l->yx*r->wy + l->zx*r->wz + l->wx*r->ww,
-        l->xy*r->wx + l->yy*r->wy + l->zy*r->wz + l->wy*r->ww,
-        l->xz*r->wx + l->yz*r->wy + l->zz*r->wz + l->wz*r->ww,
-        l->xw*r->wx + l->yw*r->wy + l->zw*r->wz + l->ww*r->ww
+PI_INLINE_C PI_VECTOR4 _pi_vec4_lerp_generic(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
+    return PI_INIT_STRUCT(PI_VECTOR4){
+        PI_LERP(a.x, b.x, t),
+        PI_LERP(a.y, b.y, t),
+        PI_LERP(a.z, b.z, t),
+        PI_LERP(a.w, b.w, t)
     };
-    return dst;
 }
 
+PI_INLINE_C PI_VECTOR4 pi_vec4_lerp(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
+    return _pi_vec4_lerp_generic(a, b, t);
+}
+    
+    /* Max & Min */
+
+#if PI_MATH_USE_SSE
+PI_INLINE_C PI_VECTOR4 _pi_vec4_max_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+    return PI_INIT_STRUCT(PI_VECTOR4){ _mm_max_ps(v1.__xmm, v2.__xmm) };
+}
+
+PI_INLINE_C PI_VECTOR4 _pi_vec4_min_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+    return PI_INIT_STRUCT(PI_VECTOR4){ _mm_min_ps(v1.__xmm, v2.__xmm) };
+}
+#endif
+
+PI_INLINE_C PI_VECTOR4 _pi_vec4_max_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+    return PI_INIT_STRUCT(PI_VECTOR4){
+        PI_MAX(v1.x, v2.x),
+        PI_MAX(v1.y, v2.y),
+        PI_MAX(v1.z, v2.z),
+        PI_MAX(v1.w, v2.w)
+    };
+}
+
+PI_INLINE_C PI_VECTOR4 _pi_vec4_min_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+    return PI_INIT_STRUCT(PI_VECTOR4){
+        PI_MIN(v1.x, v2.x),
+        PI_MIN(v1.y, v2.y),
+        PI_MIN(v1.z, v2.z),
+        PI_MIN(v1.w, v2.w)
+    };
+}
+
+PI_INLINE_C PI_VECTOR4 pi_vec4_max(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+    #if PI_MATH_USE_SSE
+        return _pi_vec4_max_sse(v1, v2);
+    #endif
+    return _pi_vec4_max_generic(v1, v2);
+}
+PI_INLINE_C PI_VECTOR4 pi_vec4_min(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+    #if PI_MATH_USE_SSE
+        return _pi_vec4_min_sse(v1, v2);
+    #endif
+    return _pi_vec4_min_generic(v1, v2);
+}
+
+    /* Normalize */
+
+#if PI_MATH_USE_SSE
+PI_INLINE_C PI_VECTOR4 _pi_vec4_normalize_sse(PI_VECTOR4 v)
+{
+    PI_REGISTER __m128 msq = _mm_mul_ps(v.__xmm, v.__xmm);
+    PI_REGISTER __m128 shu = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(2, 0, 0, 1));
+    msq = _mm_add_ps(msq, shu);
+    shu = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(0, 0, 0, 3));
+    msq = _mm_add_ss(msq, shu);
+    msq = _mm_rsqrt_ss(msq);
+    msq = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(0, 0, 0, 0));
+    msq = _mm_mul_ps(msq, v.__xmm);
+
+    return PI_INIT_STRUCT(PI_VECTOR4){ msq };
+}
+#endif
+
+PI_INLINE_C PI_VECTOR4 _pi_vec4_normalize_generic(PI_VECTOR4 v)
+{
+    float invmag = 1.0f/sqrtf( v.x*v.x + v.y*v.y + v.z*v.z + v.w*v.w );
+    return PI_INIT_STRUCT(PI_VECTOR4){
+        v.x*invmag,
+        v.y*invmag,
+        v.z*invmag,
+        v.w*invmag
+    };
+}
+
+PI_INLINE_C PI_VECTOR4 pi_vec4_normalize(PI_VECTOR4 v)
+{
+    #if PI_MATH_USE_SSE
+        return _pi_vec4_normalize_sse(v);
+    #endif
+    return _pi_vec4_normalize_generic(v);
+}
+
+    /* Length/Magnitude */
+
+#if PI_MATH_USE_SSE
+    PI_INLINE_C float _pi_vec4_length_sse(PI_VECTOR4 v) {
+        __m128 sq = _mm_mul_ps(v.__xmm, v.__xmm);
+        __m128 sqsh = _mm_shuffle_ps(sq, sq, _MM_SHUFFLE(2, 3, 0, 1));
+        __m128 sum1 = _mm_add_ps(sq, sqsh);
+        sqsh = _mm_shuffle_ps(sum1, sum1, _MM_SHUFFLE(1, 1, 2, 3));
+
+        __m128 len = _mm_add_ss(sum1, sqsh);
+        len = _mm_sqrt_ss(len);
+        return _mm_cvtss_f32(len);
+    }
+#endif
+    
+PI_CONSTEXPR_F float pi_vec4_dot(PI_VECTOR4 v1, PI_VECTOR4 v2);
+PI_INLINE_C float _pi_vec4_length_generic(PI_VECTOR4 v) {
+    float len = pi_vec4_dot(v, v);
+    len = sqrtf(len);
+
+    return len;
+}
+
+PI_INLINE_C float pi_vec4_length(PI_VECTOR4 v) {
+    #if PI_MATH_USE_SSE
+        return _pi_vec4_length_sse(v);
+    #endif
+    return _pi_vec4_length_generic(v);
+}
+
+    /* Reflect */
+
+PI_INLINE_C PI_VECTOR4 _pi_vec4_reflect_generic(PI_VECTOR4 i, PI_VECTOR4 n, float* p_dotproduct) {
+    float dot = pi_vec4_dot(i, n);
+    *p_dotproduct = dot;
+
+    PI_VECTOR4 r = pi_vec4_muls(n, 2 * dot);
+    return pi_vec4_sub(i, r);
+}
+
+PI_INLINE_C PI_VECTOR4 pi_vec4_reflect(PI_VECTOR4 i, PI_VECTOR4 n, float* p_dotproduct) {
+    float dummy;
+    if (!p_dotproduct) {
+        p_dotproduct = &dummy;
+    }
+
+    return _pi_vec4_reflect_generic(i, n, p_dotproduct);
+}
+
+    /* Cross product */
+
+#if PI_MATH_USE_SSE
+#define _MM_SHUF_CROSS1 _MM_SHUFFLE(3, 0, 2, 1)
+#define _MM_SHUF_CROSS2 _MM_SHUFFLE(3, 1, 0, 2)
+
+PI_INLINE_C PI_VECTOR4 _pi_vec_cross_sse(PI_VECTOR4 v1, PI_VECTOR4 v2)
+{
+    PI_REGISTER __m128 res;
+    PI_REGISTER __m128 lmm = _mm_shuffle_ps(v1.__xmm, v1.__xmm, _MM_SHUF_CROSS1);
+    PI_REGISTER __m128 rmm = _mm_shuffle_ps(v2.__xmm, v2.__xmm, _MM_SHUF_CROSS2);
+    res = _mm_mul_ps(lmm, rmm);
+    lmm = _mm_shuffle_ps(v1.__xmm, v1.__xmm, _MM_SHUF_CROSS2);
+    rmm = _mm_shuffle_ps(v2.__xmm, v2.__xmm, _MM_SHUF_CROSS1);
+    lmm = _mm_mul_ps(lmm, rmm);
+    res = _mm_sub_ps(res, lmm);
+    
+    return PI_INIT_STRUCT(PI_VECTOR4){ res };
+}
+
+#endif
+
+PI_INLINE_C PI_VECTOR4 _pi_vec_cross_generic(PI_VECTOR4 v1, PI_VECTOR4 v2)
+{
+    return PI_INIT_STRUCT(PI_VECTOR4){
+        v1.y*v2.z - v1.z*v2.y,
+        v1.z*v2.x - v1.x*v2.z,
+        v1.x*v2.y - v1.y*v2.x
+    };
+}
+
+
+    /* Calculate the 3D cross product of two vectors, and store it inside a 4D vector `dst`. The "w" component of the vector is ignored and will be zeroed. (or undefined???) */
+PI_INLINE_C PI_VECTOR4 pi_vec4_cross(PI_VECTOR4 v1, PI_VECTOR4 v2)
+{
+    #if PI_MATH_USE_AVX
+        #error "Implement AVX cross product???"
+        return _pi_vec_cross_avx(v1, v2);
+    #endif
+    #if PI_MATH_USE_SSE
+        return _pi_vec_cross_sse(v1, v2);
+    #endif
+    return _pi_vec_cross_generic(v1, v2);
+}
+
+    /* vec3 to vec4 conversion just in case */
+PI_CONSTEXPR_F PI_VECTOR4 pi_vec3_to_vec4(PI_VECTOR3 v, float w PI_MEMBER_DEFAULT(0.0f)) {
+    return PI_INIT_STRUCT(PI_VECTOR4){ v.x, v.y, v.z, w };
+}
+
+    /* Cross product for vec3, (wraps pi_vec4_cross) */
+PI_INLINE_C PI_VECTOR3 pi_vec3_cross(PI_VECTOR3 v1, PI_VECTOR3 v2) {
+    PI_VECTOR4 res = pi_vec4_cross(
+            pi_vec3_to_vec4(v1, 0.0f),
+            pi_vec3_to_vec4(v2, 0.0f)
+        );
+    return PI_INIT_STRUCT(PI_VECTOR3){ res.x, res.y, res.z };
+}
+
+
+    /* Now, for vec2, note that not all of the vec4 operations are implemented for vec2, since it's less used in this engine and harder to implement with SIMD/SSE, I just didn't implement everything. */
+
+    /* Normalize */
+
+PI_INLINE_C PI_VECTOR2 _pi_vec2_normalize_generic(PI_VECTOR2 v) {
+    float invmag = 1/sqrtf(v.x*v.x + v.y*v.y);
+    return PI_INIT_STRUCT(PI_VECTOR2){
+        v.x*invmag,
+        v.y*invmag,
+    };
+}
+
+PI_INLINE_C PI_VECTOR2 pi_vec2_normalize(PI_VECTOR2 v) {
+    return _pi_vec2_normalize_generic(v);
+}
+
+    /* Absolute */ 
+
+PI_INLINE_C PI_VECTOR2 pi_vec2_abs(PI_VECTOR2 v) {
+    return PI_INIT_STRUCT(PI_VECTOR2){
+        fabsf(v.x),
+        fabsf(v.y)
+    };
+}
+
+
+    /* Dot products for all vector types */
+
+PI_CONSTEXPR_F float pi_vec4_dot(PI_VECTOR4 v1, PI_VECTOR4 v2) {
+    return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z + v1.w*v2.w;
+}
+
+PI_CONSTEXPR_F float pi_vec3_dot(PI_VECTOR3 v1, PI_VECTOR3 v2) {
+    return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
+}
+
+PI_CONSTEXPR_F float pi_vec2_dot(PI_VECTOR2 v1, PI_VECTOR2 v2) {
+    return v1.x*v2.x + v1.y*v2.y;
+}
+
+
+/* Matrix math API */
 
 #if PI_MATH_USE_SSE
 
@@ -379,7 +609,7 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_generic(PI_MATRIX_4X4* dst, const PI_MATR
 #define _MM_SHUF_ZCOL 0xAA
 #define _MM_SHUF_WCOL 0xFF
 
-PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_mul_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
 {
     PI_REGISTER __m128 lxrow = _mm_load_ps(&l->xx);
     PI_REGISTER __m128 lyrow = _mm_load_ps(&l->yx);
@@ -471,7 +701,7 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4
 #define _MM_PERMUTE_LO2 0x22
 #define _MM_PERMUTE_HI2 0x33
 
-PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_avx(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_mul_avx(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
 {
     PI_REGISTER __m256 lxyrow = _mm256_load_ps(&l->xx);
     PI_REGISTER __m256 lzwrow = _mm256_load_ps(&l->zx);
@@ -524,20 +754,47 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4_avx(PI_MATRIX_4X4* dst, const PI_MATRIX_4
 
 #endif
 
-PI_INLINE_C PI_MATRIX_4X4* pi_mul_4x4(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r) {
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_mul_generic(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r)
+{
+    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
+        l->xx*r->xx + l->yx*r->xy + l->zx*r->xz + l->wx*r->xw,
+        l->xy*r->xx + l->yy*r->xy + l->zy*r->xz + l->wy*r->xw,
+        l->xz*r->xx + l->yz*r->xy + l->zz*r->xz + l->wz*r->xw,
+        l->xw*r->xx + l->yw*r->xy + l->zw*r->xz + l->ww*r->xw,
+
+        l->xx*r->yx + l->yx*r->yy + l->zx*r->yz + l->wx*r->yw,
+        l->xy*r->yx + l->yy*r->yy + l->zy*r->yz + l->wy*r->yw,
+        l->xz*r->yx + l->yz*r->yy + l->zz*r->yz + l->wz*r->yw,
+        l->xw*r->yx + l->yw*r->yy + l->zw*r->yz + l->ww*r->yw,
+
+        l->xx*r->zx + l->yx*r->zy + l->zx*r->zz + l->wx*r->zw,
+        l->xy*r->zx + l->yy*r->zy + l->zy*r->zz + l->wy*r->zw,
+        l->xz*r->zx + l->yz*r->zy + l->zz*r->zz + l->wz*r->zw,
+        l->xw*r->zx + l->yw*r->zy + l->zw*r->zz + l->ww*r->zw,
+
+        l->xx*r->wx + l->yx*r->wy + l->zx*r->wz + l->wx*r->ww,
+        l->xy*r->wx + l->yy*r->wy + l->zy*r->wz + l->wy*r->ww,
+        l->xz*r->wx + l->yz*r->wy + l->zz*r->wz + l->wz*r->ww,
+        l->xw*r->wx + l->yw*r->wy + l->zw*r->wz + l->ww*r->ww
+    };
+    return dst;
+}
+
+
+PI_INLINE_C PI_MATRIX_4X4* pi_mat4x4_mul(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* l, const PI_MATRIX_4X4* r) {
     #if PI_MATH_USE_AVX
-        return _pi_mul_4x4_avx(dst, l, r);
+        return _pi_mat4x4_mul_avx(dst, l, r);
     #endif
     #if PI_MATH_USE_SSE
-        return _pi_mul_4x4_sse(dst, l, r);
+        return _pi_mat4x4_mul_sse(dst, l, r);
     #endif
-    return _pi_mul_4x4_generic(dst, l, r);
+    return _pi_mat4x4_mul_generic(dst, l, r);
 }
 
 //
 
 
-PI_CONSTEXPR_F PI_VECTOR4 _pi_mulv_4x4_generic(PI_VECTOR4 v, const PI_MATRIX_4X4* m) {
+PI_CONSTEXPR_F PI_VECTOR4 _pi_mat4x4_mulv_generic(PI_VECTOR4 v, const PI_MATRIX_4X4* m) {
     return PI_INIT_STRUCT(PI_VECTOR4){
         v.x*m->xx + v.y*m->yx + v.z*m->zx + v.w*m->wx,
         v.x*m->xy + v.y*m->yy + v.z*m->zy + v.w*m->wy,
@@ -548,7 +805,7 @@ PI_CONSTEXPR_F PI_VECTOR4 _pi_mulv_4x4_generic(PI_VECTOR4 v, const PI_MATRIX_4X4
 
 #if PI_MATH_USE_SSE
 
-PI_INLINE_C PI_VECTOR4 _pi_mulv_4x4_sse(PI_VECTOR4 v, const PI_MATRIX_4X4* m)
+PI_INLINE_C PI_VECTOR4 _pi_mat4x4_mulv_sse(PI_VECTOR4 v, const PI_MATRIX_4X4* m)
 {
     PI_REGISTER __m128 colx;
     PI_REGISTER __m128 coly;
@@ -583,15 +840,15 @@ PI_INLINE_C PI_VECTOR4 _pi_mulv_4x4_sse(PI_VECTOR4 v, const PI_MATRIX_4X4* m)
 
 #endif
 
-PI_INLINE_C PI_VECTOR4 pi_mulv_4x4(PI_VECTOR4 v, const PI_MATRIX_4X4* m) {
+PI_INLINE_C PI_VECTOR4 pi_mat4x4_mulv(PI_VECTOR4 v, const PI_MATRIX_4X4* m) {
     #if PI_MATH_USE_SSE
-        return _pi_mulv_4x4_sse(v, m);
+        return _pi_mat4x4_mulv_sse(v, m);
     #endif
-    return _pi_mulv_4x4_generic(v, m);
+    return _pi_mat4x4_mulv_generic(v, m);
 }
 
 
-PI_INLINE_C PI_MATRIX_3X3* _pi_mul_3x3s_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
+PI_INLINE_C PI_MATRIX_3X3* _pi_mat3x3_muls_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
     *dst = PI_INIT_STRUCT(PI_MATRIX_3X3){
         s*m->xx, s*m->xy, s*m->xz,
         s*m->yx, s*m->yy, s*m->yz,
@@ -601,7 +858,7 @@ PI_INLINE_C PI_MATRIX_3X3* _pi_mul_3x3s_generic(PI_MATRIX_3X3* dst, const PI_MAT
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_MATRIX_3X3* _pi_mul_3x3s_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
+PI_INLINE_C PI_MATRIX_3X3* _pi_mat3x3_muls_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
     __m128 ms = _mm_set_ps1(s);
     __m128 m1 = _mm_loadu_ps(&m->xx);
     __m128 m2 = _mm_loadu_ps(&m->yy);
@@ -617,15 +874,15 @@ PI_INLINE_C PI_MATRIX_3X3* _pi_mul_3x3s_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_
 }
 #endif
 
-PI_INLINE_C PI_MATRIX_3X3* pi_mul_3x3s(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
+PI_INLINE_C PI_MATRIX_3X3* pi_mat3x3_muls(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m, float s) {
     #if PI_MATH_USE_SSE
-        return _pi_mul_3x3s_sse(dst, m, s);
+        return _pi_mat3x3_muls_sse(dst, m, s);
     #endif
-    return _pi_mul_3x3s_generic(dst, m, s);
+    return _pi_mat3x3_muls_generic(dst, m, s);
 };
 
 
-PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4s_generic(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_muls_generic(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
     *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
         s*m->xx, s*m->xy, s*m->xz, s*m->xw,
         s*m->yx, s*m->yy, s*m->yz, s*m->yw,
@@ -636,7 +893,7 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4s_generic(PI_MATRIX_4X4* dst, const PI_MAT
 }
 
 #if PI_MATH_USE_AVX
-PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4s_avx(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_muls_avx(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
     __m256 ms = _mm256_set1_ps(s);
     __m256 m1 = _mm256_mul_ps(dst->__zmm[0], ms);
     __m256 m2 = _mm256_mul_ps(dst->__zmm[1], ms);
@@ -647,7 +904,7 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4s_avx(PI_MATRIX_4X4* dst, const PI_MATRIX_
 #endif
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4s_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_muls_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
     __m128 ms = _mm_set1_ps(s);
     __m128 m1 = _mm_mul_ps(m->__xmm[0], ms);
     __m128 m2 = _mm_mul_ps(m->__xmm[1], ms);
@@ -661,19 +918,19 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_mul_4x4s_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_
 }
 #endif
 
-PI_INLINE_C PI_MATRIX_4X4* pi_mul_4x4s(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
+PI_INLINE_C PI_MATRIX_4X4* pi_mat4x4_muls(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m, float s) {
     #if PI_MATH_USE_AVX
-        return _pi_mul_4x4s_avx(dst, m, s);
+        return _pi_mat4x4_muls_avx(dst, m, s);
     #endif
     #if PI_MATH_USE_SSE
-        return _pi_mul_4x4s_sse(dst, m, s);
+        return _pi_mat4x4_muls_sse(dst, m, s);
     #endif
-    return _pi_mul_4x4s_generic(dst, m, s);
+    return _pi_mat4x4_muls_generic(dst, m, s);
 };
 
     /* Matrix transpose */
 
-PI_INLINE_C PI_MATRIX_4X4* _pi_transpose_4x4_generic(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m) {
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_transpose_generic(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m) {
     *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
         m->xx, m->yx, m->zx, m->wx,
         m->xy, m->yy, m->zy, m->wy,
@@ -684,7 +941,7 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_transpose_4x4_generic(PI_MATRIX_4X4* dst, const P
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_MATRIX_4X4* _pi_transpose_4x4_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m) {
+PI_INLINE_C PI_MATRIX_4X4* _pi_mat4x4_transpose_sse(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m) {
     __m128 m0 = m->__xmm[0];
     __m128 m1 = m->__xmm[1];
     __m128 m2 = m->__xmm[2];
@@ -698,15 +955,15 @@ PI_INLINE_C PI_MATRIX_4X4* _pi_transpose_4x4_sse(PI_MATRIX_4X4* dst, const PI_MA
 }
 #endif
 
-PI_INLINE_C PI_MATRIX_4X4* pi_transpose_4x4(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m) {
+PI_INLINE_C PI_MATRIX_4X4* pi_mat4x4_transpose(PI_MATRIX_4X4* dst, const PI_MATRIX_4X4* m) {
     #if PI_MATH_USE_SSE
-        return _pi_transpose_4x4_sse(dst, m);
+        return _pi_mat4x4_transpose_sse(dst, m);
     #endif
-    return _pi_transpose_4x4_generic(dst, m);
+    return _pi_mat4x4_transpose_generic(dst, m);
 }
 
 
-PI_INLINE_C PI_MATRIX_3X3* _pi_transpose_3x3_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
+PI_INLINE_C PI_MATRIX_3X3* _pi_mat3x3_transpose_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
     *dst = PI_INIT_STRUCT(PI_MATRIX_3X3) {
         m->xx, m->yx, m->zx,
         m->xy, m->yy, m->zy,
@@ -716,7 +973,7 @@ PI_INLINE_C PI_MATRIX_3X3* _pi_transpose_3x3_generic(PI_MATRIX_3X3* dst, const P
 }
 
 #if PI_MATH_USE_SSE
-PI_INLINE_C PI_MATRIX_3X3* _pi_transpose_3x3_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
+PI_INLINE_C PI_MATRIX_3X3* _pi_mat3x3_transpose_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
     /* Man... That was a puzzle game! */
     __m128 m0 = _mm_loadu_ps(&m->xx);
     __m128 m1 = _mm_loadu_ps(&m->yx);
@@ -734,432 +991,17 @@ PI_INLINE_C PI_MATRIX_3X3* _pi_transpose_3x3_sse(PI_MATRIX_3X3* dst, const PI_MA
 }
 #endif
 
-PI_INLINE_C PI_MATRIX_3X3* pi_transpose_3x3(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
+PI_INLINE_C PI_MATRIX_3X3* pi_mat3x3_transpose(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
     #if PI_MATH_USE_SSE
-        _pi_transpose_3x3_sse(dst, m);
+        _pi_mat3x3_transpose_sse(dst, m);
     #endif
-    return _pi_transpose_3x3_generic(dst, m);
-}
-
-#include <math.h>
-
-/* Vector math API */
-
-#if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_vec4_lerp_sse(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
-    __m128 mmt = _mm_set1_ps(t);
-    __m128 mmdif = _mm_sub_ps(b.__xmm, a.__xmm);
-    mmdif = _mm_mul_ps(mmdif, mmt);
-    return PI_INIT_STRUCT(PI_VECTOR4){ _mm_add_ps(a.__xmm, mmdif) };
-}
-#endif
-
-PI_INLINE_C PI_VECTOR4 _pi_vec4_lerp_generic(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
-    return PI_INIT_STRUCT(PI_VECTOR4){
-        PI_LERP(a.x, b.x, t),
-        PI_LERP(a.y, b.y, t),
-        PI_LERP(a.z, b.z, t),
-        PI_LERP(a.w, b.w, t)
-    };
-}
-
-PI_INLINE_C PI_VECTOR4 pi_vec4_lerp(PI_VECTOR4 a, PI_VECTOR4 b, float t) {
-    return _pi_vec4_lerp_generic(a, b, t);
-}
-
-#if PI_MATH_USE_SSE
-PI_INLINE_C PI_VECTOR4 _pi_max4_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
-    return PI_INIT_STRUCT(PI_VECTOR4){ _mm_max_ps(v1.__xmm, v2.__xmm) };
-}
-
-PI_INLINE_C PI_VECTOR4 _pi_min4_sse(PI_VECTOR4 v1, PI_VECTOR4 v2) {
-    return PI_INIT_STRUCT(PI_VECTOR4){ _mm_min_ps(v1.__xmm, v2.__xmm) };
-}
-#endif
-
-PI_INLINE_C PI_VECTOR4 _pi_max4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
-    return PI_INIT_STRUCT(PI_VECTOR4){
-        PI_MAX(v1.x, v2.x),
-        PI_MAX(v1.y, v2.y),
-        PI_MAX(v1.z, v2.z),
-        PI_MAX(v1.w, v2.w)
-    };
-}
-
-PI_INLINE_C PI_VECTOR4 _pi_min4_generic(PI_VECTOR4 v1, PI_VECTOR4 v2) {
-    return PI_INIT_STRUCT(PI_VECTOR4){
-        PI_MIN(v1.x, v2.x),
-        PI_MIN(v1.y, v2.y),
-        PI_MIN(v1.z, v2.z),
-        PI_MIN(v1.w, v2.w)
-    };
-}
-
-PI_INLINE_C PI_VECTOR4 pi_max4(PI_VECTOR4 v1, PI_VECTOR4 v2) {
-    #if PI_MATH_USE_SSE
-        return _pi_max4_sse(v1, v2);
-    #endif
-    return _pi_max4_generic(v1, v2);
-}
-PI_INLINE_C PI_VECTOR4 pi_min4(PI_VECTOR4 v1, PI_VECTOR4 v2) {
-    #if PI_MATH_USE_SSE
-        return _pi_min4_sse(v1, v2);
-    #endif
-    return _pi_min4_generic(v1, v2);
+    return _pi_mat3x3_transpose_generic(dst, m);
 }
 
 
-PI_INLINE_C PI_VECTOR4* _pi_vector_normalize4_generic(PI_VECTOR4* dst, PI_VECTOR4 v)
-{
-    float invmag = 1.0f/sqrtf( v.x*v.x + v.y*v.y + v.z*v.z + v.w*v.w );
-    *dst = PI_INIT_STRUCT(PI_VECTOR4){
-        v.x*invmag,
-        v.y*invmag,
-        v.z*invmag,
-        v.w*invmag
-    };
-    return dst;
-}
+    /* Matrix inverse */
 
-#if PI_MATH_USE_SSE
-
-PI_INLINE_C PI_VECTOR4* _pi_vector_normalize4_sse(PI_VECTOR4* dst, PI_VECTOR4 v)
-{
-    PI_REGISTER __m128 msq = _mm_mul_ps(v.__xmm, v.__xmm);
-    PI_REGISTER __m128 shu = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(2, 0, 0, 1));
-    msq = _mm_add_ps(msq, shu);
-    shu = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(0, 0, 0, 3));
-    msq = _mm_add_ss(msq, shu);
-    msq = _mm_rsqrt_ss(msq);
-    msq = _mm_shuffle_ps(msq, msq, _MM_SHUFFLE(0, 0, 0, 0));
-    msq = _mm_mul_ps(msq, v.__xmm);
-
-    _mm_store_ps(&dst->x, msq);
-    return dst;
-}
-
-#endif
-
-PI_INLINE_C PI_VECTOR4* pi_vector_normalize4(PI_VECTOR4* dst, PI_VECTOR4 v)
-{
-    #if PI_MATH_USE_SSE
-        return _pi_vector_normalize4_sse(dst, v);
-    #endif
-    return _pi_vector_normalize4_generic(dst, v);
-}
-
-
-
-#if PI_MATH_USE_SSE
-    PI_INLINE_C float _pi_vec4_length_sse(PI_VECTOR4 v) {
-        __m128 sq = _mm_mul_ps(v.__xmm, v.__xmm);
-        __m128 sqsh = _mm_shuffle_ps(sq, sq, _MM_SHUFFLE(2, 3, 0, 1));
-        __m128 sum1 = _mm_add_ps(sq, sqsh);
-        sqsh = _mm_shuffle_ps(sum1, sum1, _MM_SHUFFLE(1, 1, 2, 3));
-
-        __m128 len = _mm_add_ss(sum1, sqsh);
-        len = _mm_sqrt_ss(len);
-        return _mm_cvtss_f32(len);
-    }
-#endif
-    
-PI_CONSTEXPR_F float pi_vector_dot4(PI_VECTOR4 v1, PI_VECTOR4 v2);
-PI_INLINE_C float _pi_vec4_length_generic(PI_VECTOR4 v) {
-    float len = pi_vector_dot4(v, v);
-    len = sqrtf(len);
-
-    return len;
-}
-
-PI_INLINE_C float pi_vec4_length(PI_VECTOR4 v) {
-    #if PI_MATH_USE_SSE
-        return _pi_vec4_length_sse(v);
-    #endif
-    return _pi_vec4_length_generic(v);
-}
-
-
-PI_INLINE_C PI_VECTOR4 _pi_vec4_reflect_generic(PI_VECTOR4 i, PI_VECTOR4 n) {
-    PI_VECTOR4 r = pi_mul_4s(n, 2 * pi_vector_dot4(i, n));
-    return pi_sub_4(i, r);
-}
-
-PI_INLINE_C PI_VECTOR4 pi_vec4_reflect(PI_VECTOR4 i, PI_VECTOR4 n) {
-    return _pi_vec4_reflect_generic(i, n);
-}
-
-
-PI_INLINE_C PI_VECTOR2 _pi_vec2_normalize_generic(PI_VECTOR2 v) {
-    float invmag = 1/sqrtf(v.x*v.x + v.y*v.y);
-    return PI_INIT_STRUCT(PI_VECTOR2){
-        v.x*invmag,
-        v.y*invmag,
-    };
-}
-
-PI_INLINE_C PI_VECTOR2 pi_vec2_normalize(PI_VECTOR2 v) {
-    return _pi_vec2_normalize_generic(v);
-}
-
-
-PI_INLINE_C PI_VECTOR2 pi_vec2_abs(PI_VECTOR2 v) {
-    return PI_INIT_STRUCT(PI_VECTOR2){
-        fabsf(v.x),
-        fabsf(v.y)
-    };
-}
-
-//
-
-
-#if PI_MATH_USE_SSE
-#define _MM_SHUF_CROSS1 _MM_SHUFFLE(3, 0, 2, 1)
-#define _MM_SHUF_CROSS2 _MM_SHUFFLE(3, 1, 0, 2)
-
-PI_INLINE_C PI_VECTOR4 _pi_vector_cross_sse(PI_VECTOR4 v1, PI_VECTOR4 v2)
-{
-    PI_REGISTER __m128 res;
-    PI_REGISTER __m128 lmm = _mm_shuffle_ps(v1.__xmm, v1.__xmm, _MM_SHUF_CROSS1);
-    PI_REGISTER __m128 rmm = _mm_shuffle_ps(v2.__xmm, v2.__xmm, _MM_SHUF_CROSS2);
-    res = _mm_mul_ps(lmm, rmm);
-    lmm = _mm_shuffle_ps(v1.__xmm, v1.__xmm, _MM_SHUF_CROSS2);
-    rmm = _mm_shuffle_ps(v2.__xmm, v2.__xmm, _MM_SHUF_CROSS1);
-    lmm = _mm_mul_ps(lmm, rmm);
-    res = _mm_sub_ps(res, lmm);
-    
-    return PI_INIT_STRUCT(PI_VECTOR4){ res };
-}
-
-#endif
-
-PI_INLINE_C PI_VECTOR4 _pi_vector_cross_generic(PI_VECTOR4 v1, PI_VECTOR4 v2)
-{
-    return PI_INIT_STRUCT(PI_VECTOR4){
-        v1.y*v2.z - v1.z*v2.y,
-        v1.z*v2.x - v1.x*v2.z,
-        v1.x*v2.y - v1.y*v2.x
-    };
-}
-
-    /* Calculate the 3D cross product of two vectors, and store it inside a 4D vector `dst`. The "w" component of the vector is ignored and will be zeroed. (or undefined???) */
-PI_INLINE_C PI_VECTOR4 pi_vector_cross4(PI_VECTOR4 v1, PI_VECTOR4 v2)
-{
-    #if PI_MATH_USE_AVX
-        #error "Implement AVX cross product???"
-        return _pi_vector_cross_avx(v1, v2);
-    #endif
-    #if PI_MATH_USE_SSE
-        return _pi_vector_cross_sse(v1, v2);
-    #endif
-    return _pi_vector_cross_generic(v1, v2);
-}
-
-PI_CONSTEXPR_F float pi_vector_dot4(PI_VECTOR4 v1, PI_VECTOR4 v2) {
-    return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z + v1.w*v2.w;
-}
-
-PI_CONSTEXPR_F float pi_vector_dot3(PI_VECTOR3 v1, PI_VECTOR3 v2) {
-    return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
-}
-
-PI_CONSTEXPR_F float pi_vector_dot2(PI_VECTOR2 v1, PI_VECTOR2 v2) {
-    return v1.x*v2.x + v1.y*v2.y;
-}
-
-/* Matrix math API */
-
-    /* Conversions */
-
-#if PI_MATH_USE_SSE
-PI_INLINE_C PI_MATRIX_3X3* _pi_matrix_4x4_to_3x3_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
-     _mm_storeu_ps(&dst->xx, src->__xmm[0]);
-     _mm_storeu_ps(&dst->yx, src->__xmm[1]);
-     _mm_storel_pi((__m64*)&dst->zx, src->__xmm[2]);
-
-     __m128 zm = _mm_shuffle_ps(src->__xmm[2], src->__xmm[2], _MM_SHUFFLE(2, 2, 2, 2));
-     _mm_store_ss(&dst->zz, zm);
-
-     return dst;
-}
-#endif
-
-PI_INLINE_C PI_MATRIX_3X3* _pi_matrix_4x4_to_3x3_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
-    *dst = PI_INIT_STRUCT(PI_MATRIX_3X3){
-        src->xx, src->xy, src->xz,
-        src->yx, src->yy, src->yz,
-        src->zx, src->zy, src->zz
-    };
-    return dst;
-}
-
-PI_INLINE_C PI_MATRIX_3X3* pi_matrix_4x4_to_3x3(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
-    #if PI_MATH_USE_SSE
-        return _pi_matrix_4x4_to_3x3_sse(dst, src);
-    #endif
-    return _pi_matrix_4x4_to_3x3_generic(dst, src);
-}
-
-    /**/
-
-PI_CONSTEXPR_F PI_MATRIX_4X4 pi_identity_4x4() {
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-}
-
-PI_CONSTEXPR_F PI_MATRIX_4X4 pi_scale_4x4(float x, float y, float z, float w /* = 1 */) {
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
-        x   , 0.0f, 0.0f, 0.0f,
-        0.0f, y   , 0.0f, 0.0f,
-        0.0f, 0.0f, z   , 0.0f,
-        0.0f, 0.0f, 0.0f, w
-    };
-}
-
-PI_CONSTEXPR_F PI_MATRIX_4X4 pi_matrix_ortho(
-        float left,  float right,
-        float top,   float bottom,
-        float znear, float zfar
-    ) {
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
-        2.0f/(right - left), 0.0f, 0.0f, 0.0f,
-        0.0f, 2.0f/(top - bottom), 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f/(zfar - znear), 0.0f,
-
-        -(right + left)/(right - left),
-        (bottom + top)/(bottom - top),
-        (znear)/(znear - zfar),
-        1.0f
-    };    
-}
-
-PI_INLINE_C PI_MATRIX_4X4 pi_matrix_perspective(float fov, float ratio, float znear, float zfar)
-{
-    float tanfov2 = 1.0f/tanf(fov/2.0f);
-    return PI_INIT_STRUCT(PI_MATRIX_4X4){
-        tanfov2 / ratio, 0.0f, 0.0f, 0.0f,
-        0.0f, tanfov2, 0.0f, 0.0f,
-        0.0f, 0.0f, zfar/(zfar - znear), 1.0f,
-        0.0f, 0.0f, (znear*zfar)/(znear - zfar), 0.0f
-    };
-}
-
-    /* Rotations */
-
-PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate_x(PI_MATRIX_4X4* dst, float rx)
-{
-    float sx = sinf(rx);
-    float cx = cosf(rx);
-
-    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, cx  , sx  , 0.0f,
-        0.0f, -sx , cx  , 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-    return dst;
-}
-
-PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate_y(PI_MATRIX_4X4* dst, float ry)
-{
-    float sy = sinf(ry);
-    float cy = cosf(ry);
-
-    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
-        cy  , 0.0f, -sy , 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        sy  , 0.0f, cy  , 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-    return dst;
-}
-
-PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate_z(PI_MATRIX_4X4* dst, float rz)
-{
-    float sz = -sinf(rz); // Clockwise rotation instead of standard counter-clockwise rotation. Usually would work better for computer graphics rotations, but might change it.
-    float cz = cosf(rz);
-
-    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
-        cz  , sz , 0.0f, 0.0f,
-        -sz , cz  , 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-    return dst;
-}
-
-
-    /* Rotation with normalized `n_axis`, DON'T use it unless you're sure that n_axis is normalized. Otherwise, use `pi_matrix_rotate4` */
-PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate4n(PI_MATRIX_4X4* dst, float angle, PI_VECTOR3 n_axis)
-{
-    float c = cosf(angle);
-    float s = sinf(angle);
-
-    float c1 = 1.0f - c;
-    float xc1 = n_axis.x*c1;
-    float yc1 = n_axis.y*c1;
-    float zc1 = n_axis.z*c1;
-    float xs = n_axis.x*s;
-    float ys = n_axis.y*s;
-    float zs = n_axis.z*s;
-    *dst = PI_INIT_STRUCT(PI_MATRIX_4X4){
-        n_axis.x*xc1 + c, n_axis.x*yc1 + zs, n_axis.x*zc1 - ys, 0.0f,
-        n_axis.y*xc1 - zs, n_axis.y*yc1 + c, n_axis.y*zc1 + xs, 0.0f,
-        n_axis.z*xc1 + ys, n_axis.z*yc1 - xs, n_axis.z*zc1 + c, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-    return dst;
-}
-
-PI_INLINE_C PI_MATRIX_4X4* pi_matrix_rotate4(PI_MATRIX_4X4* dst, float angle, PI_VECTOR3 axis)
-{
-    PI_VECTOR4 n_axis = { axis.x, axis.y, axis.z };
-    pi_vector_normalize4(&n_axis, n_axis);
-    return pi_matrix_rotate4n(dst, angle, *(PI_VECTOR3*)&n_axis);
-}
-
-
-    /* View matrices */
-
-PI_INLINE_C PI_MATRIX_4X4* pi_matrix_view(PI_MATRIX_4X4* dst, PI_VECTOR4 eye, PI_VECTOR4 xaxis, PI_VECTOR4 yaxis, PI_VECTOR4 zaxis)
-{
-    eye = pi_unary_4(eye);
-    xaxis = pi_unary_4(xaxis);
-    yaxis = pi_unary_4(yaxis);
-
-    PI_MATRIX_4X4 _dst = {
-        xaxis.x, yaxis.x, zaxis.x, 0.0f,
-        xaxis.y, yaxis.y, zaxis.y, 0.0f,
-        xaxis.z, yaxis.z, zaxis.z, 0.0f,
-
-        0.0f, 0.0f, 0.0f, 1.0f
-    };
-    eye.w = 1.0f;
-    *(PI_VECTOR4*)&_dst.wx = pi_mulv_4x4(eye, &_dst);
-
-    *dst = _dst;
-    return dst;
-}
-
-PI_INLINE_C PI_MATRIX_4X4* pi_look_along(PI_MATRIX_4X4* dst, PI_VECTOR4 eye, PI_VECTOR4 look, PI_VECTOR4 up)
-{
-    PI_VECTOR4 right = pi_vector_cross4(look, up);
-    pi_vector_normalize4(&right, right);
-    up = pi_vector_cross4(look, right);
-    return pi_matrix_view(dst, eye, right, up, look);
-}
-
-PI_INLINE_C PI_MATRIX_4X4* pi_look_at(PI_MATRIX_4X4* dst, PI_VECTOR4 eye, PI_VECTOR4 at, PI_VECTOR4 up)
-{
-    PI_VECTOR4 look = { at.x - eye.x, at.y - eye.y, at.z - eye.z };
-    pi_vector_normalize4(&look, look);
-    return pi_look_along(dst, eye, look, up);
-}
-
-PI_INLINE_C PI_MATRIX_3X3* _pi_inverse_3x3_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m)
+PI_INLINE_C PI_MATRIX_3X3* _pi_mat3x3_inverse_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m)
 {
     float det = m->xx*(m->yy*m->zz - m->zy*m->yz) -
                 m->yx*(m->xy*m->zz - m->xz*m->zy) +
@@ -1180,13 +1022,202 @@ PI_INLINE_C PI_MATRIX_3X3* _pi_inverse_3x3_generic(PI_MATRIX_3X3* dst, const PI_
         +(m->yx*m->zy - m->yy*m->zx), -(m->xx*m->zy - m->xy*m->zx), +(m->xx*m->yy - m->xy*m->yx)
     };
     
-    pi_mul_3x3s(dst, &res, invdet);
+    pi_mat3x3_muls(dst, &res, invdet);
     return dst;
 }
 
 
-PI_INLINE_C PI_MATRIX_3X3* pi_inverse_3x3(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
-    return _pi_inverse_3x3_generic(dst, m);
+PI_INLINE_C PI_MATRIX_3X3* pi_mat3x3_inverse(PI_MATRIX_3X3* dst, const PI_MATRIX_3X3* m) {
+    return _pi_mat3x3_inverse_generic(dst, m);
+}
+
+
+    /* Conversions */
+
+#if PI_MATH_USE_SSE
+PI_INLINE_C PI_MATRIX_3X3* _pi_mat4x4_to_mat3x3_sse(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
+     _mm_storeu_ps(&dst->xx, src->__xmm[0]);
+     _mm_storeu_ps(&dst->yx, src->__xmm[1]);
+     _mm_storel_pi((__m64*)&dst->zx, src->__xmm[2]);
+
+     __m128 zm = _mm_shuffle_ps(src->__xmm[2], src->__xmm[2], _MM_SHUFFLE(2, 2, 2, 2));
+     _mm_store_ss(&dst->zz, zm);
+
+     return dst;
+}
+#endif
+
+PI_INLINE_C PI_MATRIX_3X3* _pi_mat4x4_to_mat3x3_generic(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
+    *dst = PI_INIT_STRUCT(PI_MATRIX_3X3){
+        src->xx, src->xy, src->xz,
+        src->yx, src->yy, src->yz,
+        src->zx, src->zy, src->zz
+    };
+    return dst;
+}
+
+PI_INLINE_C PI_MATRIX_3X3* pi_mat4x4_to_mat3x3(PI_MATRIX_3X3* dst, const PI_MATRIX_4X4* src) {
+    #if PI_MATH_USE_SSE
+        return _pi_mat4x4_to_mat3x3_sse(dst, src);
+    #endif
+    return _pi_mat4x4_to_mat3x3_generic(dst, src);
+}
+
+/* Higher level matrix APIs */
+
+PI_CONSTEXPR_F PI_MATRIX_4X4 pi_mat4x4_identity() {
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+}
+PI_CONSTEXPR_F PI_MATRIX_3X3 pi_mat3x3_identity() {
+    return PI_INIT_STRUCT(PI_MATRIX_3X3){
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f
+    };
+}
+PI_CONSTEXPR_F PI_MATRIX_2X2 pi_mat2x2_identity() {
+    return PI_INIT_STRUCT(PI_MATRIX_2X2){
+        1.0f, 0.0f,
+        0.0f, 1.0f
+    };
+}
+
+
+PI_CONSTEXPR_F PI_MATRIX_4X4 pi_mat4x4_ortho(
+        float left,  float right,
+        float top,   float bottom,
+        float znear, float zfar
+    ) {
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        2.0f/(right - left), 0.0f, 0.0f, 0.0f,
+        0.0f, 2.0f/(top - bottom), 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f/(zfar - znear), 0.0f,
+
+        -(right + left)/(right - left),
+        (bottom + top)/(bottom - top),
+        (znear)/(znear - zfar),
+        1.0f
+    };    
+}
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_perspective(float fov, float ratio, float znear, float zfar)
+{
+    float tanfov2 = 1.0f/tanf(fov/2.0f);
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        tanfov2 / ratio, 0.0f, 0.0f, 0.0f,
+        0.0f, tanfov2, 0.0f, 0.0f,
+        0.0f, 0.0f, zfar/(zfar - znear), 1.0f,
+        0.0f, 0.0f, (znear*zfar)/(znear - zfar), 0.0f
+    };
+}
+
+    /* Rotations */
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_rotateX(float rx)
+{
+    float sx = sinf(rx);
+    float cx = cosf(rx);
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, cx  , sx  , 0.0f,
+        0.0f, -sx , cx  , 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+}
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_rotateY(float ry)
+{
+    float sy = sinf(ry);
+    float cy = cosf(ry);
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        cy  , 0.0f, -sy , 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        sy  , 0.0f, cy  , 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+}
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_rotateZ(float rz)
+{
+    float sz = sinf(rz);
+    float cz = cosf(rz);
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        cz  , sz , 0.0f, 0.0f,
+        -sz , cz  , 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+}
+
+
+    /* Rotation with normalized `n_axis`, DON'T use it unless you're sure that n_axis is normalized. Otherwise, use `pi_matrix_rotate4` */
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_rotate_n(float angle, PI_VECTOR3 n_axis)
+{
+    float c = cosf(angle);
+    float s = sinf(angle);
+
+    float c1 = 1.0f - c;
+    float xc1 = n_axis.x*c1;
+    float yc1 = n_axis.y*c1;
+    float zc1 = n_axis.z*c1;
+    float xs = n_axis.x*s;
+    float ys = n_axis.y*s;
+    float zs = n_axis.z*s;
+    return PI_INIT_STRUCT(PI_MATRIX_4X4){
+        n_axis.x*xc1 + c, n_axis.x*yc1 + zs, n_axis.x*zc1 - ys, 0.0f,
+        n_axis.y*xc1 - zs, n_axis.y*yc1 + c, n_axis.y*zc1 + xs, 0.0f,
+        n_axis.z*xc1 + ys, n_axis.z*yc1 - xs, n_axis.z*zc1 + c, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+}
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_rotate(float angle, PI_VECTOR3 axis)
+{
+    PI_VECTOR4 n_axis = { axis.x, axis.y, axis.z };
+    n_axis = pi_vec4_normalize(n_axis);
+    return pi_mat4x4_rotate_n(angle, *(PI_VECTOR3*)&n_axis);
+}
+
+
+    /* View matrices */
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_view(PI_VECTOR4 eye, PI_VECTOR4 xaxis, PI_VECTOR4 yaxis, PI_VECTOR4 zaxis)
+{
+    eye = pi_vec4_unary(eye);
+    xaxis = pi_vec4_unary(xaxis);
+    yaxis = pi_vec4_unary(yaxis);
+
+    PI_MATRIX_4X4 dst = {
+        xaxis.x, yaxis.x, zaxis.x, 0.0f,
+        xaxis.y, yaxis.y, zaxis.y, 0.0f,
+        xaxis.z, yaxis.z, zaxis.z, 0.0f,
+
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    eye.w = 1.0f;
+    dst.v.w = pi_mat4x4_mulv(eye, &dst);
+    return dst;
+}
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_lookalong(PI_VECTOR4 eye, PI_VECTOR4 look, PI_VECTOR4 up)
+{
+    PI_VECTOR4 right = pi_vec4_cross(look, up);
+    right = pi_vec4_normalize(right);
+    up = pi_vec4_cross(look, right);
+    return pi_mat4x4_view(eye, right, up, look);
+}
+
+PI_INLINE_C PI_MATRIX_4X4 pi_mat4x4_lookat(PI_VECTOR4 eye, PI_VECTOR4 at, PI_VECTOR4 up)
+{
+    PI_VECTOR4 look = pi_vec4_sub(at, eye);
+    look.w = 0.0f;
+    look = pi_vec4_normalize(look);
+    return pi_mat4x4_lookalong(eye, look, up);
 }
 
 

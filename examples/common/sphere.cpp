@@ -3,6 +3,7 @@
 #include <piengine/pi_math.h>
 
 #include <vector>
+#include <cstring>
 
 PI_EXTERN_C PI_VERTEX* common::generate_sphere_mesh(float radius, int h_vertices, int v_vertices, PI_VERTEX* vertices, int* indices, bool flatshaded)
 {

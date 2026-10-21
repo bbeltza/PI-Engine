@@ -34,8 +34,7 @@ void GAME_PLAYER::update(float dt, const PI_VECTOR2& direction) noexcept
         dirty_yawpitch = false;
         dirty_view = true;
         yaw = view_yaw;
-        pi::MATRIX_4X4 m;
-        m(pi_matrix_rotate_y, yaw);
+        pi::MATRIX_4X4 m = pi_mat4x4_rotateY(yaw);
         forward = m->v.z;
     } 
 
@@ -45,18 +44,18 @@ void GAME_PLAYER::update(float dt, const PI_VECTOR2& direction) noexcept
         
         PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(hrigidbody);
         PI_VECTOR3X delta = { direction.x, 0.0f, direction.y };
-        pi_vector_normalize4(&delta, delta);
+        delta = pi_vec4_normalize(delta);
         delta *= dt*3.0f;
 
         pi::VECTOR4 up{ 0.0f, 1.0f, 0.0f, 0.0f };
-        pi::VECTOR4 right = pi_vector_cross4(up, forward);
+        pi::VECTOR4 right = pi_vec4_cross(up, forward);
         pi::MATRIX_4X4 m = { 
             right,
             up,
             forward
         };
-        delta = pi_mulv_4x4(delta, &m);
-        properties->position = pi_add_4(properties->position, delta);        
+        delta = pi_mat4x4_mulv(delta, &m);
+        properties->position = pi_vec4_add(properties->position, delta);        
     }
     else if (m_bobbytime) {
         dirty_view = true;
@@ -77,5 +76,5 @@ PI_VECTOR3X GAME_PLAYER::get_view_position() noexcept
     }
 
     PI_RIGIDBODY_PROPERTIES* properties = pi_get_rigid_body_properties(hrigidbody);
-    return pi_add_4(properties->position, PI_VECTOR4{ 0.0f, up, 0.0f, 0.0f });
+    return pi_vec4_add(properties->position, PI_VECTOR4{ 0.0f, up, 0.0f, 0.0f });
 }

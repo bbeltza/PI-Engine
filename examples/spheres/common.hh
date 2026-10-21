@@ -45,7 +45,7 @@ private:
 };
 
 struct CUBE {
-    CUBE(PI_HGAME hgame, const PI_VECTOR3X& position, const PI_VECTOR3X& scale, const PI_VECTOR4& color={ 1.0f, 1.0f, 1.0f, 1.0f }) noexcept;
+    CUBE(PI_HGAME hgame, const PI_VECTOR3X& position, const PI_VECTOR3X& scale, const PI_VECTOR4& color=PI_VECTOR4{ 1.0f, 1.0f, 1.0f, 1.0f }) noexcept;
 private:
     PI_HRIGIDBODY_RAII m_hrigidbody;
     PI_HINSTANCE_RAII m_hinstance;

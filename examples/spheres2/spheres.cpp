@@ -59,7 +59,7 @@ bool PI_GAME::app_event(const PI_EVENT& event) noexcept
     {
         case PI_EVENT_WINDOW_SIZE: {
             float ratio = static_cast<float>(event.window.data1)/event.window.data2;
-            pi::MATRIX_4X4 m = pi_matrix_perspective(70_degf, ratio, 0.01f, 10.0f);
+            pi::MATRIX_4X4 m = pi_mat4x4_perspective(70_degf, ratio, 0.01f, 10.0f);
             pi_set_scene_projection(hscene, &m);
         } break;
         case PI_EVENT_KEY:
@@ -121,23 +121,18 @@ bool CAMERA::update(PI_HGAME hgame, const PI_VECTOR3& direction) noexcept
     pi::VECTOR4 dir{ direction };
     if (m_dirtyrot) {
         m_dirtyrot = false;
-        pi::MATRIX_4X4 mx, my;
-        mx(pi_matrix_rotate_x, m_pitch);
-        my(pi_matrix_rotate_y, m_yaw);
 
-        my *= mx;
-        m_right = my->v.x;
-        m_up    = my->v.y;
-        m_look  = my->v.z;
+        pi::MATRIX_4X4 m = pi_mat4x4_rotateY(m_yaw) * pi_mat4x4_rotateX(m_pitch);
+        m_right = m->v.x;
+        m_up    = m->v.y;
+        m_look  = m->v.z;
     }
     else if (!dir) {
         return false;
     }
 
     if (dir) {
-        pi_vector_normalize4(&dir, dir); /* Math functions will be renamed better and this type of signature for vectors will go away after this example! */
-        dir *= dt * 2.0f;
-    
+        dir = pi_vec4_normalize(dir) * dt * 2.0f;
         pi::MATRIX_4X4 m{
             m_right,
             m_up,
@@ -147,8 +142,7 @@ bool CAMERA::update(PI_HGAME hgame, const PI_VECTOR3& direction) noexcept
         m_position += dir.ref();
     }
 
-    pi::MATRIX_4X4 m;
-    m( pi_look_along, m_position, m_look, m_up );
+    pi::MATRIX_4X4 m = pi_mat4x4_lookalong(m_position, m_look, m_up);
     pi_set_scene_view(hgame->hscene, &m);
 
     if (m_init) {

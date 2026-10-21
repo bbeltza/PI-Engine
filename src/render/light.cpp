@@ -70,7 +70,7 @@ PI_HLIGHT PI_SYSTEM_SCENE::add_light(PI_LIGHTTYPE type, const PI_LIGHT* initial_
             {
                 PI_DIRECTIONAL_LIGHT reallight = initial_parameters->directional;
                 reallight.direction.w = 0;
-                pi_vector_normalize4(&reallight.direction, reallight.direction);
+                reallight.direction = pi_vec4_normalize(reallight.direction);
                 m_dirlight_buffer.push_back(reallight);
             }
             update_lights_dirty(m_dirlight_buffer, lindex, m_dirlight_start_dirty, m_dirlight_count_dirty);
@@ -118,7 +118,8 @@ bool PI_SYSTEM_SCENE::update_light(PI_HLIGHT hlight, const PI_LIGHT* light) noex
         case PI_LIGHT_DIRECTIONAL:
             update_lights_dirty(m_dirlight_buffer, hlight->index, m_dirlight_start_dirty, m_dirlight_count_dirty);
             m_dirlight_buffer.at(hlight->index) = light->directional;
-            pi_vector_normalize4(&m_dirlight_buffer.at(hlight->index).direction, light->directional.direction);
+            m_dirlight_buffer.at(hlight->index).direction.w = 0.0f;
+            m_dirlight_buffer.at(hlight->index).direction = pi_vec4_normalize(light->directional.direction);
             break;
         case PI_LIGHT_POINT:
             update_lights_dirty(m_ptlight_buffer, hlight->index, m_ptlight_start_dirty, m_ptlight_count_dirty);

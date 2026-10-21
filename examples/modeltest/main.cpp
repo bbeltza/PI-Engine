@@ -86,13 +86,7 @@ PI_HMESH create_guitar_mesh(PI_HGAME hgame) noexcept
 
                     unsigned nmsindex = 3*index.normal_index;
 
-                    static PI_VECTOR4 LIGHT_DIR = *pi_vector_normalize4(&LIGHT_DIR,
-                        PI_VECTOR3X{
-                            -0.3f,
-                            0.7f,
-                            0.8f
-                        } );
-
+                    static PI_VECTOR4 LIGHT_DIR = pi_vec4_normalize(PI_VECTOR3X{ -0.3f, 0.7f, 0.8f } );
                     PI_VECTOR3 normal = {
                         attrib.normals.at(nmsindex+0),
                         attrib.normals.at(nmsindex+1),
@@ -243,15 +237,17 @@ bool PI_GAME::app_update() noexcept
         dirty.triangle = false;
 
         PI_INSTANCE inst;
-        inst.transform = pi_scale_4x4(0.015f, 0.015f, 0.015f, 1.0f);
+        inst.transform = PI_MATRIX_4X4{
+            0.015f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.015f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.015f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
         inst.transform.wy -= 0.6f;
         inst.transform.zz *= -1.0f;
-        pi::MATRIX_4X4 m;
-        m(pi_matrix_rotate_y, -rotation.x);
-        inst.transform = m * inst.transform;
-        m(pi_matrix_rotate_x, -rotation.y);
-        inst.transform = m * inst.transform;
 
+        inst.transform = pi_mat4x4_rotateY(-rotation.x) * inst.transform;
+        inst.transform = pi_mat4x4_rotateX(-rotation.y) * inst.transform;
         inst.transform.wz += 1.5f;
         pi_update_mesh_instance(htriangle_instance, &inst);
     }
@@ -262,12 +258,12 @@ bool PI_GAME::app_update() noexcept
         float ratio = (float)wnd_w/wnd_h;
 
         PI_MATRIX_4X4 m = dirty.useortho ?
-                pi_matrix_ortho(
+                pi_mat4x4_ortho(
                     ratio*-0.5f, ratio*0.5f,
                     1.0f, -1.0f,
                     0.0f, 3.0f
                 )
-              : pi_matrix_perspective(70_degf, ratio, 0.1f, 10.0f);
+              : pi_mat4x4_perspective(70_degf, ratio, 0.1f, 10.0f);
         
         pi_set_scene_projection(hscene, &m);
     }

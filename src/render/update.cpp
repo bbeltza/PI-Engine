@@ -42,7 +42,7 @@ bool PI_SYSTEM_SCENE::_update_dirty() noexcept
     PI_BACKEND_RENDER_INFO& backend = renderer->backend;
     if (this->dirty.viewproj) {
         PI_MATRIX_4X4 vpmatrix;
-        pi_mul_4x4(&vpmatrix, &this->projection, &this->view);
+        pi_mat4x4_mul(&vpmatrix, &this->projection, &this->view);
         backend.callbacks.pfn_update_scene_vp(
                 hbackend,
                 hscenebackend,
@@ -131,10 +131,10 @@ static const PI_MATRIX_3X3* update_normal_matrices(PI_WORLDENV_EFFECTS effects, 
         PI_MATRIX_3X3* nm = &instbuffer->normaldata.at(i);
         const PI_MATRIX_4X4* im = &inststart->transform;
         PI_MATRIX_3X3 n;
-        pi_matrix_4x4_to_3x3(&n, im);
-        PI_MATRIX_3X3* res = pi_inverse_3x3(&n, &n); 
+        pi_mat4x4_to_mat3x3(&n, im);
+        PI_MATRIX_3X3* res = pi_mat3x3_inverse(&n, &n); 
         PI_ASSERT(res);
-        pi_transpose_3x3(nm, &n);
+        pi_mat3x3_transpose(nm, &n);
     }
 
     return instbuffer->normaldata.data();

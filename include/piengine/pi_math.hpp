@@ -135,96 +135,96 @@ namespace pi
 /* Operator overloaders */
 
 inline PI_VECTOR4 operator +(const PI_VECTOR4& v1, const PI_VECTOR4& v2) {
-    return pi_add_4(v1, v2);
+    return pi_vec4_add(v1, v2);
 }
 inline PI_VECTOR4 operator +(const PI_VECTOR4& v, float s) {
-    return pi_add_4s(v, s);
+    return pi_vec4_adds(v, s);
 }
 inline PI_VECTOR4 operator +(float s, const PI_VECTOR4& v) {
-    return pi_add_4s(v, s);
+    return pi_vec4_adds(v, s);
 }
 
 inline PI_VECTOR4 operator -(const PI_VECTOR4& v1, const PI_VECTOR4& v2) {
-    return pi_sub_4(v1, v2);
+    return pi_vec4_sub(v1, v2);
 }
 inline PI_VECTOR4 operator -(const PI_VECTOR4& v, float s) {
-    return pi_sub_4s(v, s);
+    return pi_vec4_subs(v, s);
 }
 inline PI_VECTOR4 operator -(float s, const PI_VECTOR4& v) {
-    return pi_sub_4si(s, v);
+    return pi_vec4_subsi(s, v);
 }
 
 inline PI_VECTOR4 operator *(const PI_VECTOR4& v1, const PI_VECTOR4& v2) {
-    return pi_mul_4(v1, v2);
+    return pi_vec4_mul(v1, v2);
 }
 inline PI_VECTOR4 operator *(const PI_VECTOR4& v, float s) {
-    return pi_mul_4s(v, s);
+    return pi_vec4_muls(v, s);
 }
 inline PI_VECTOR4 operator *(float s, const PI_VECTOR4& v) {
-    return pi_mul_4s(v, s);
+    return pi_vec4_muls(v, s);
 }
 
 inline PI_VECTOR4 operator -(const PI_VECTOR4& v) {
-    return pi_unary_4(v);
+    return pi_vec4_unary(v);
 }
 
 
 inline PI_VECTOR4& operator +=(PI_VECTOR4& v, const PI_VECTOR4& v2) {
-    v = pi_add_4(v, v2);
+    v = pi_vec4_add(v, v2);
     return v;
 }
 inline PI_VECTOR4& operator +=(PI_VECTOR4& v, float s) {
-    v = pi_add_4s(v, s);
+    v = pi_vec4_adds(v, s);
     return v;
 }
 
 inline PI_VECTOR4& operator -=(PI_VECTOR4& v, const PI_VECTOR4& v2) {
-    v = pi_sub_4(v, v2);
+    v = pi_vec4_sub(v, v2);
     return v;
 }
 inline PI_VECTOR4& operator -=(PI_VECTOR4& v, float s) {
-    v = pi_sub_4s(v, s);
+    v = pi_vec4_subs(v, s);
     return v;
 }
 
 inline PI_VECTOR4& operator *=(PI_VECTOR4& v, const PI_VECTOR4& v2) {
-    v = pi_mul_4(v, v2);
+    v = pi_vec4_mul(v, v2);
     return v;
 }
 inline PI_VECTOR4& operator *=(PI_VECTOR4& v, float s) {
-    v = pi_mul_4s(v, s);
+    v = pi_vec4_muls(v, s);
     return v;
 }
 
 
 inline PI_MATRIX_4X4 operator *(const PI_MATRIX_4X4& m1, const PI_MATRIX_4X4& m2) {
     PI_MATRIX_4X4 dst;
-    pi_mul_4x4(&dst, &m1, &m2);
+    pi_mat4x4_mul(&dst, &m1, &m2);
     return dst;
 }
 inline PI_VECTOR4 operator *(const PI_VECTOR4& v, const PI_MATRIX_4X4& m) {
-    return pi_mulv_4x4(v, &m);
+    return pi_mat4x4_mulv(v, &m);
 }
 inline PI_MATRIX_4X4 operator *(const PI_MATRIX_4X4& m, float s) {
     PI_MATRIX_4X4 dst;
-    pi_mul_4x4s(&dst, &m, s);
+    pi_mat4x4_muls(&dst, &m, s);
     return dst;
 }
 inline PI_MATRIX_4X4 operator *(float s, const PI_MATRIX_4X4& m) {
     PI_MATRIX_4X4 dst;
-    pi_mul_4x4s(&dst, &m, s);
+    pi_mat4x4_muls(&dst, &m, s);
     return dst;
 }
 
 inline PI_MATRIX_4X4& operator *=(PI_MATRIX_4X4& m, const PI_MATRIX_4X4& m2) {
-    return *pi_mul_4x4(&m, &m, &m2);
+    return *pi_mat4x4_mul(&m, &m, &m2);
 }
 inline PI_VECTOR4& operator *=(PI_VECTOR4& v, const PI_MATRIX_4X4& m) {
-    v = pi_mulv_4x4(v, &m);
+    v = pi_mat4x4_mulv(v, &m);
     return v;
 }
 inline PI_MATRIX_4X4& operator *=(PI_MATRIX_4X4& m, float s) {
-    return *pi_mul_4x4s(&m, &m, s);
+    return *pi_mat4x4_muls(&m, &m, s);
 }
 
 //

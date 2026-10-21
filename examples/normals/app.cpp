@@ -41,7 +41,7 @@ PI_GAME::PI_GAME() noexcept:
             ) },
     hinstance{ pi_add_scene_mesh(hscene, hmesh, NULL ) }
 {
-    PI_MATRIX_4X4 m = pi_identity_4x4();
+    PI_MATRIX_4X4 m = pi_mat4x4_identity();
     m.wz = 2.0f;
     pi_set_scene_view(hscene, &m);
 
@@ -86,7 +86,7 @@ bool PI_GAME::app_event(const PI_EVENT& event) noexcept
         } break;
         case PI_EVENT_WINDOW_SIZE: {
             float ratio = static_cast<float>(event.window.data1)/event.window.data2;
-            PI_MATRIX_4X4 m = pi_matrix_perspective(70_degf, ratio, 0.01f, 10.0f);
+            PI_MATRIX_4X4 m = pi_mat4x4_perspective(70_degf, ratio, 0.01f, 10.0f);
             pi_set_scene_projection(hscene, &m);
         } break;
         default:
@@ -108,12 +108,8 @@ bool PI_GAME::app_update() noexcept
             dirty.cube = false;
 
         PI_INSTANCE i;
-        pi::MATRIX_4X4 m;
-        m(pi_matrix_rotate_x, realcubepitch);
-        pi_matrix_rotate_y(&i.transform, realcubeyaw);
-        i.transform = m * i.transform;
+        i.transform = pi_mat4x4_rotateX(realcubepitch) * pi_mat4x4_rotateY(realcubeyaw);
         i.transform.wz = 0.0f;
-
         pi_update_mesh_instance(hinstance, &i);
     }
 

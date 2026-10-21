@@ -24,10 +24,10 @@ PI_GAME::PI_GAME():
         spheres.emplace_back(this, PI_VECTOR3X{ (i-num_spheres*0.5f)*gap, 2.5f, 0.0f }, 0.1f);
     }
 
-    pi::MATRIX_4X4 m;
-    m(pi_look_at, PI_VECTOR3X{ 0.0f, 0.0f, -4.0f },
-                  PI_VECTOR3X{ 0.0f, 0.0f, 0.0f },
-                  PI_VECTOR3X{ 0.0f, 1.0f, 0.0f });
+    pi::MATRIX_4X4 m = pi_mat4x4_lookat(PI_VECTOR3X{ 0.0f, 0.0f, -4.0f },
+                                        PI_VECTOR3X{ 0.0f, 0.0f, 0.0f },
+                                        PI_VECTOR3X{ 0.0f, 1.0f, 0.0f }
+                                    );
     pi_set_scene_view(hscene, &m);
 
     PI_LIGHT l;
@@ -66,7 +66,7 @@ bool PI_GAME::app_event(const PI_EVENT& event) noexcept
     {
         case PI_EVENT_WINDOW_SIZE: {
             float ratio = (float)event.window.data1/event.window.data2;
-            pi::MATRIX_4X4 m = pi_matrix_perspective( 70_degf, ratio, 0.01f, 5.0f );
+            pi::MATRIX_4X4 m = pi_mat4x4_perspective( 70_degf, ratio, 0.01f, 5.0f );
             pi_set_scene_projection(hscene, &m);
         } break;
         default:

@@ -156,19 +156,15 @@ void PI_GAME::_update_dirty() noexcept
         dirty_projection = false;
 
         float ratio = (float)wnd_w/wnd_h;
-        PI_MATRIX_4X4 m = pi_matrix_perspective(70_degf, ratio, 0.1f, 22.0f);
+        PI_MATRIX_4X4 m = pi_mat4x4_perspective(70_degf, ratio, 0.1f, 22.0f);
         pi_set_scene_projection(hscene, &m);
     }
     if (player.dirty_view) {
         player.dirty_view = false;
         
-        pi::MATRIX_4X4 l, r;
-        l(pi_matrix_rotate_y, player.view_yaw);
-        r(pi_matrix_rotate_x, player.view_pitch);
-        l *= r;
-        
-        r(pi_look_along, player.get_view_position(), l->v.z, l->v.y);       
-        pi_set_scene_view(hscene, &r);
+        pi::MATRIX_4X4 m = pi_mat4x4_rotateY(player.view_yaw) * pi_mat4x4_rotateX(player.view_pitch);
+        pi::MATRIX_4X4 v = pi_mat4x4_lookalong(player.get_view_position(), m->v.z, m->v.y);
+        pi_set_scene_view(hscene, &v);
     }
 }
 

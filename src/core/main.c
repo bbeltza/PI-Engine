@@ -6,12 +6,9 @@
 #include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_system.h>
 #include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_log.h>
 
 #define CHECK_CALLBACK(c) PI_ASSERT(c != NULL)
-
-#include <stdio.h>
-
-#define PI_LOG(fmt, ...) printf(fmt "\n",##__VA_ARGS__)
 
 static bool _event_watch(void* userdata, SDL_Event* event);
 static void _update_scenes(PI_ENGINEDATA* engine, PI_HGAME hgame);
@@ -24,6 +21,28 @@ static void _update_scenes(PI_ENGINEDATA* engine, PI_HGAME hgame);
     #include <Windows.h>
     bool SDLCALL _win32_message_hook(void* userdata, MSG* msg);
 #endif
+
+static void SDLCALL sdl_logfunc(void* userdata, int category, SDL_LogPriority priority, const char* message)
+{
+    PI_LOGCATEGORY picategory;
+    if (category == SDL_LOG_CATEGORY_ERROR  ||
+        priority == SDL_LOG_PRIORITY_ERROR  ||
+        priority == SDL_LOG_PRIORITY_CRITICAL) {
+        picategory = PI_LOG_ERROR;
+    }
+    else if (priority == SDL_LOG_PRIORITY_WARN) {
+        picategory = PI_LOG_WARN;
+    }
+    else if (priority == SDL_LOG_PRIORITY_DEBUG ||
+             priority == SDL_LOG_PRIORITY_TRACE) {
+        picategory = PI_LOG_DEBUG;
+    }
+    else  {
+        picategory = PI_LOG_INFO;
+    }
+
+    PI_LOG_FMT(picategory, "(SDL): %s", message);
+}
 
 PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
 {
@@ -64,6 +83,7 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         system_sizes[i] = size;
     }
 
+    SDL_SetLogOutputFunction(sdl_logfunc, NULL);
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
         return -1;
     }
@@ -111,7 +131,7 @@ PI_EXTERN_C int pi_run_exv(const PI_APPINFO* appinfo, va_list args)
         PI_SYSTEM_DESC* pdesc = &engine->system_descs[i];
         if (!systems[i]->pfn_start((void*)last_system, engine, pdesc)) {
             // TODO: Handle failure better
-            printf("SYSTEM INITIALIZATION (at index: %zu) FAILED...\n", i);
+            PI_LOG_FMT(PI_LOG_ERROR, "SYSTEM INITIALIZATION (at index: %zu) FAILED...\n", i);
             goto QUIT_FAIL;
         }
         

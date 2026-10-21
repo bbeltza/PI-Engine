@@ -13,11 +13,11 @@ PI_EXTERN_C struct PI_COLLISIONPROP_AABB* pi_get_mesh_aabb(struct PI_COLLISIONPR
         const PI_VERTEX* vt = &vertices[i];
         PI_VECTOR3X pos = { vt->pos.x, vt->pos.y, vt->pos.z };
         if (ptransform) {
-            pos = pi_mulv_4x4(pos, ptransform);
+            pos = pi_mat4x4_mulv(pos, ptransform);
         }
 
-        min = pi_min4(min, pos);
-        max = pi_max4(max, pos);
+        min = pi_vec4_min(min, pos);
+        max = pi_vec4_max(max, pos);
     }
 
     dst->min = min;

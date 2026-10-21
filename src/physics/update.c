@@ -19,12 +19,13 @@ PI_EXTERN_C void fn_physics_pre_update(void* hsystem, PI_HSYSTEMSCENE hsysscenes
 
 static void update_transform(PI_RIGIDBODY_DATA* rbdata) {
     rbdata->rbproperties.position.w = 1.0f;
-    *rbdata->p_transform = pi_scale_4x4(rbdata->rbproperties.scale.x,
-                 rbdata->rbproperties.scale.y,
-                 rbdata->rbproperties.scale.z,
-                 rbdata->rbproperties.scale.w
-            );
 
+    *rbdata->p_transform = PI_INIT_STRUCT(PI_MATRIX_4X4){
+        rbdata->rbproperties.scale.x, 0.0f, 0.0f, 0.0f,
+        0.0f, rbdata->rbproperties.scale.y, 0.0f, 0.0f,
+        0.0f, 0.0f, rbdata->rbproperties.scale.z, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
     rbdata->p_transform->v.w = rbdata->rbproperties.position;
 }
 
@@ -75,17 +76,17 @@ void update_scene(PI_SYSTEM_PHYSICS* hsystem, PI_HSYSTEMSCENE hscene, float dt)
                 hscene->properties.gravity,
                 rbdata->rbproperties.force.z * hscene->properties.forcedrag
             };
-            fdt = pi_mul_4s(fdt, fac);
-            rbdata->rbproperties.force = pi_sub_4(
+            fdt = pi_vec4_muls(fdt, fac);
+            rbdata->rbproperties.force = pi_vec4_sub(
                         rbdata->rbproperties.force,
                         fdt
                     );
 
-            pdelta = pi_add_4(pdelta, rbdata->rbproperties.force);
+            pdelta = pi_vec4_add(pdelta, rbdata->rbproperties.force);
         }
 
-        pdelta = pi_mul_4s(pdelta, dt);
-        rbdata->rbproperties.position = pi_add_4(
+        pdelta = pi_vec4_muls(pdelta, dt);
+        rbdata->rbproperties.position = pi_vec4_add(
                 rbdata->rbproperties.position,
                 pdelta
             );

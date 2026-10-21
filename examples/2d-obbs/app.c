@@ -174,15 +174,15 @@ static bool create_mesh(PI_HGAME self)
 /**/
 
 bool test_axis(const PI_VECTOR2* t, const PI_VECTOR2* axis, float w_or_h, const PI_VECTOR2* scaled_xaxis, const PI_VECTOR2* scaled_yaxis, float* p_tprojected, float* p_lprojected, bool* p_tneg) {
-    float tprojected = pi_vector_dot2(*t, *axis);
+    float tprojected = pi_vec2_dot(*t, *axis);
     if (p_tneg) {
         *p_tneg = signbit(tprojected);
     }
 
     tprojected = fabsf(tprojected);
     float lprojected = w_or_h +
-        fabsf(pi_vector_dot2(*scaled_xaxis, *axis)) +
-        fabsf(pi_vector_dot2(*scaled_yaxis, *axis));
+        fabsf(pi_vec2_dot(*scaled_xaxis, *axis)) +
+        fabsf(pi_vec2_dot(*scaled_yaxis, *axis));
 
     if (p_tprojected)
         *p_tprojected = tprojected;
@@ -246,7 +246,7 @@ static void update_dirty(PI_HGAME self)
         float w = ratio * SCALE;
         float h = 1.0f * SCALE;
 
-        PI_MATRIX_4X4 m = pi_matrix_ortho(-w, w, -h, h, 0.0f, 1.0f);
+        PI_MATRIX_4X4 m = pi_mat4x4_ortho(-w, w, -h, h, 0.0f, 1.0f);
         pi_set_scene_projection(self->hscene, &m);
     }
 

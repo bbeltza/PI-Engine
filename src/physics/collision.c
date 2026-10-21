@@ -95,11 +95,11 @@ typedef struct PI_COLLISIONPROP_AABB AABB;
 
 static bool aabb_intersect(const AABB* aabb1, AABB* aabb2, float* p_push, PI_VECTOR3X* p_normal)
 {
-    PI_VECTOR3X d1 = pi_sub_4(aabb1->max, aabb2->min);
+    PI_VECTOR3X d1 = pi_vec4_sub(aabb1->max, aabb2->min);
     if (is_negative3x(d1))
         return false;
 
-    PI_VECTOR3X d2 = pi_sub_4(aabb2->max, aabb1->min);
+    PI_VECTOR3X d2 = pi_vec4_sub(aabb2->max, aabb1->min);
     if (is_negative3x(d2))
         return false;
 
@@ -180,39 +180,38 @@ static void push_back_bodies(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar,
     float l, r;
     get_weight_distro(datal->rbproperties.mass, datar->rbproperties.mass, &l, &r);
 
-    PI_VECTOR3X lfac = pi_mul_4s(lrnormal, l);
-    PI_VECTOR3X rfac = pi_mul_4s(rlnormal, r);
-    PI_VECTOR3X lpush = pi_mul_4s(lfac, pushdist);
-    PI_VECTOR3X rpush = pi_mul_4s(rfac, pushdist);
+    PI_VECTOR3X lfac = pi_vec4_muls(lrnormal, l);
+    PI_VECTOR3X rfac = pi_vec4_muls(rlnormal, r);
+    PI_VECTOR3X lpush = pi_vec4_muls(lfac, pushdist);
+    PI_VECTOR3X rpush = pi_vec4_muls(rfac, pushdist);
     
-    datal->rbproperties.position = pi_add_4(datal->rbproperties.position, lpush);
-    datar->rbproperties.position = pi_add_4(datar->rbproperties.position, rpush);
+    datal->rbproperties.position = pi_vec4_add(datal->rbproperties.position, lpush);
+    datar->rbproperties.position = pi_vec4_add(datar->rbproperties.position, rpush);
 
     float lforcemag = pi_vec4_length(datal->rbproperties.force);
     float rforcemag = pi_vec4_length(datar->rbproperties.force);
     
     if (lforcemag) {
-        PI_VECTOR3X normalizedforce = pi_mul_4s(datal->rbproperties.force, 1/lforcemag);
-        PI_VECTOR3X newforce = pi_vec4_reflect(normalizedforce, lrnormal);
+        float normalproj;
+        PI_VECTOR3X newforce = pi_vec4_reflect(datal->rbproperties.force, lrnormal, &normalproj);
+        newforce = pi_vec4_muls(newforce, 1/lforcemag);
 
-            /* REMINDER: pi_vec4_reflect gets the dot product of these two vectors. Could also get the dot product from there? */
-        float normalproj = pi_vector_dot4(datal->rbproperties.force, lrnormal);
         /*
          * -1: Cancel all of the force
          *  0: Keep all of the force
          *  1: Give part of the force
          *  */
         float newforcemag = lforcemag + (lforcemag*PI_CLAMP(normalproj, -1.0f, 0.0f));
-        newforce = pi_mul_4s(newforce, newforcemag);
+        newforce = pi_vec4_muls(newforce, newforcemag);
 
         datal->rbproperties.force = newforce;
     }
     if (rforcemag) {
-        PI_VECTOR3X normalizedforce = pi_mul_4s(datar->rbproperties.force, 1/rforcemag);
-        PI_VECTOR3X newforce = pi_vec4_reflect(normalizedforce, rlnormal);
-        float normalproj = pi_vector_dot4(datar->rbproperties.force, rlnormal);
+        float normalproj;
+        PI_VECTOR3X newforce = pi_vec4_reflect(datar->rbproperties.force, rlnormal, &normalproj);
+        newforce = pi_vec4_muls(newforce, 1/rforcemag);
         float newforcemag = rforcemag + (rforcemag*PI_CLAMP(normalproj, -1.0f, 0.0f));
-        newforce = pi_mul_4s(newforce, newforcemag);
+        newforce = pi_vec4_muls(newforce, newforcemag);
 
         datar->rbproperties.force = newforce;
     }
@@ -231,16 +230,16 @@ static void aabb_vs_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
         // Incorporate matrix addition (finally) and use it here instead of
         // adding the vectors individually, allowing better raw optimizations.
     struct PI_COLLISIONPROP_AABB worldspacel = {
-        pi_add_4(datal->rbproperties.position, 
-                pi_mul_4(datal->rbproperties.scale, datal->clproperties.aabb.min)),
-        pi_add_4(datal->rbproperties.position, 
-                pi_mul_4(datal->rbproperties.scale, datal->clproperties.aabb.max))
+        pi_vec4_add(datal->rbproperties.position, 
+                pi_vec4_mul(datal->rbproperties.scale, datal->clproperties.aabb.min)),
+        pi_vec4_add(datal->rbproperties.position, 
+                pi_vec4_mul(datal->rbproperties.scale, datal->clproperties.aabb.max))
     };
     struct PI_COLLISIONPROP_AABB worldspacer = {
-        pi_add_4(datar->rbproperties.position, 
-                pi_mul_4(datar->rbproperties.scale, datar->clproperties.aabb.min)),
-        pi_add_4(datar->rbproperties.position, 
-                pi_mul_4(datar->rbproperties.scale, datar->clproperties.aabb.max))
+        pi_vec4_add(datar->rbproperties.position, 
+                pi_vec4_mul(datar->rbproperties.scale, datar->clproperties.aabb.min)),
+        pi_vec4_add(datar->rbproperties.position, 
+                pi_vec4_mul(datar->rbproperties.scale, datar->clproperties.aabb.max))
     };
 
     float push;
@@ -250,7 +249,7 @@ static void aabb_vs_aabb(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
             *datal->p_dirtyflag |= 1;
         }
 
-        push_back_bodies(datal, datar, push, normal, pi_unary_4(normal));
+        push_back_bodies(datal, datar, push, normal, pi_vec4_unary(normal));
     }
 }
 
@@ -259,17 +258,17 @@ static void aabb_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
     PI_ASSERT(datal->clproperties.type == PI_COLLISION_AABB);
     PI_ASSERT(datar->clproperties.type == PI_COLLISION_SPHERE);
 
-    PI_VECTOR3X min = pi_mul_4(datal->clproperties.aabb.min, datal->rbproperties.scale);
-    PI_VECTOR3X max = pi_mul_4(datal->clproperties.aabb.max, datal->rbproperties.scale);
+    PI_VECTOR3X min = pi_vec4_mul(datal->clproperties.aabb.min, datal->rbproperties.scale);
+    PI_VECTOR3X max = pi_vec4_mul(datal->clproperties.aabb.max, datal->rbproperties.scale);
 
-    PI_VECTOR3X minl = pi_add_4(datal->rbproperties.position, min);
-    PI_VECTOR3X maxl = pi_add_4(datal->rbproperties.position, max);
-    PI_VECTOR3X posr = pi_add_4(datar->rbproperties.position, datar->clproperties.sphere.origin);
+    PI_VECTOR3X minl = pi_vec4_add(datal->rbproperties.position, min);
+    PI_VECTOR3X maxl = pi_vec4_add(datal->rbproperties.position, max);
+    PI_VECTOR3X posr = pi_vec4_add(datar->rbproperties.position, datar->clproperties.sphere.origin);
     
-    PI_VECTOR3X distmin = pi_sub_4(posr, minl);
-    PI_VECTOR3X distmax = pi_sub_4(posr, maxl);
-    PI_VECTOR3X distminsq = pi_mul_4(distmin, distmin);
-    PI_VECTOR3X distmaxsq = pi_mul_4(distmax, distmax);
+    PI_VECTOR3X distmin = pi_vec4_sub(posr, minl);
+    PI_VECTOR3X distmax = pi_vec4_sub(posr, maxl);
+    PI_VECTOR3X distminsq = pi_vec4_mul(distmin, distmin);
+    PI_VECTOR3X distmaxsq = pi_vec4_mul(distmax, distmax);
 
     float radius = datar->clproperties.sphere.radius;
     float dmin = radius*radius;
@@ -281,12 +280,12 @@ static void aabb_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
     }
     if (dmin > 0.0f)
     {
-        PI_VECTOR3X halfl = pi_mul_4s(pi_sub_4(maxl, minl), 0.5f);
-        PI_VECTOR3X posl = pi_add_4(minl, halfl);
-        PI_VECTOR3X dist = pi_sub_4(posr, posl);
+        PI_VECTOR3X halfl = pi_vec4_muls(pi_vec4_sub(maxl, minl), 0.5f);
+        PI_VECTOR3X posl = pi_vec4_add(minl, halfl);
+        PI_VECTOR3X dist = pi_vec4_sub(posr, posl);
         dist.w = 0.0f;
 
-        PI_VECTOR3X dist_normalized = *pi_vector_normalize4(&dist_normalized, dist);
+        PI_VECTOR3X dist_normalized = pi_vec4_normalize(dist);
         PI_VECTOR3X dirmask = dist_normalized;
         PI_VECTOR3X dirabs = {
             fabsf(dist_normalized.x/halfl.x),
@@ -306,7 +305,7 @@ static void aabb_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
             dirmask.z = 0.0f;
         }
 
-        push_back_bodies(datal, datar, dmin, pi_unary_4(dist_normalized), dirmask);
+        push_back_bodies(datal, datar, dmin, pi_vec4_unary(dist_normalized), dirmask);
     }
 }
 
@@ -316,19 +315,17 @@ static void sphere_vs_sphere(PI_RIGIDBODY_DATA* datal, PI_RIGIDBODY_DATA* datar)
     PI_ASSERT(datal->clproperties.type == PI_COLLISION_SPHERE);
     PI_ASSERT(datar->clproperties.type == PI_COLLISION_SPHERE);
 
-    PI_VECTOR3X originl = pi_add_4(datal->rbproperties.position, datal->clproperties.sphere.origin);
-    PI_VECTOR3X originr = pi_add_4(datar->rbproperties.position, datar->clproperties.sphere.origin);
+    PI_VECTOR3X originl = pi_vec4_add(datal->rbproperties.position, datal->clproperties.sphere.origin);
+    PI_VECTOR3X originr = pi_vec4_add(datar->rbproperties.position, datar->clproperties.sphere.origin);
 
-    PI_VECTOR3X dist = pi_sub_4(originl, originr);
+    PI_VECTOR3X dist = pi_vec4_sub(originl, originr);
     dist.w = 0.0f;
     float radius_sums = datal->clproperties.sphere.radius + datar->clproperties.sphere.radius;
     float len = pi_vec4_length(dist);
     float lendif = radius_sums - len;
     if (lendif > 0) {
-        PI_VECTOR3X dist_normalized;
-        pi_vector_normalize4(&dist_normalized, dist);
-
-        push_back_bodies(datal, datar, lendif, dist_normalized, pi_unary_4(dist_normalized));
+        PI_VECTOR3X dist_normalized = pi_vec4_normalize(dist);
+        push_back_bodies(datal, datar, lendif, dist_normalized, pi_vec4_unary(dist_normalized));
     }
 }
 
