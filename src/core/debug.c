@@ -59,7 +59,7 @@ size_t PI_LOG_FMTVA(PI_LOGCATEGORY category, const char* fmt, va_list va)
         return 0;
     }
 
-    if (count >= data->size) {
+    if ((size_t)count >= data->size) {
         size_t newsize = data->size + count;
         PI_FREE(data);
 
@@ -71,7 +71,7 @@ size_t PI_LOG_FMTVA(PI_LOGCATEGORY category, const char* fmt, va_list va)
 
         data->size = newsize;
         count = SDL_vsnprintf(data->buf, newsize, fmt, va);
-        PI_ASSERT(count < newsize);
+        PI_ASSERT((size_t)count < newsize);
     }
     
     PI_ASSERT(data->buf[count] == '\0');
