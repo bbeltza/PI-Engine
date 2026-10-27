@@ -25,7 +25,7 @@ You can find the examples inside "examples/", a few screenshots and steps on how
 
 > If you're on linux, you might need to install some more packages that SDL depends on (or, install SDL3's development libraries, something like `libSDL3-dev`)
 
-> On Windows, you very likely want the Windows SDK installed, it should come with Visual Studio when ou try to install MSVC.
+> On Windows, you very likely want the Windows SDK installed, it should come with Visual Studio when you try to install MSVC.
 
 ### Downloading
 
